@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+:root {
+  --font-press-start: 'Press Start 2P', monospace;
+}
+
+@theme inline {
+  --font-press-start: var(--font-press-start);
+}
+
+body {
+  background: linear-gradient(135deg, #5B21B6 0%, #6366F1 100%);
+  min-height: 100vh;
+  font-family: var(--font-press-start);
+  color: #FDE047;
+}
+
+.font-press-start {
+  font-family: var(--font-press-start);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FDE047;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FACC15;
+}
+
+/* Animations */
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0,0,0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -30px, 0);
+  }
+  70% {
+    transform: translate3d(0, -15px, 0);
+  }
+  90% {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+/* Button hover effects */
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* Input focus effects */
+input:focus {
+  box-shadow: 0 0 0 3px rgba(253, 224, 71, 0.3);
+}
