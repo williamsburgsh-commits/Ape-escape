@@ -42,7 +42,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'TAP': {
       const now = Date.now()
       const timeSinceLastTap = now - state.lastTapTime
-      const tapsPerSecond = timeSinceLastTap < 1000 ? state.tapCount + 1 : 1
       
       const newTotalTaps = state.totalTaps + 1
       const newRugMeter = state.rugMeter + 1
@@ -143,13 +142,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Auto-sync when coming back online
-  useEffect(() => {
-    if (isOnline && user) {
-      syncGameState()
-    }
-  }, [isOnline, user, syncGameState])
-
   const addSlipMessage = useCallback((message: string) => {
     const id = Math.random().toString(36).substr(2, 9)
     const slipMessage: SlipMessage = {
@@ -165,6 +157,45 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setSlipMessages(prev => prev.filter(msg => msg.id !== id))
     }, 3000)
   }, [])
+
+  const syncGameState = useCallback(async () => {
+    if (!user || !isOnline) return
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          current_stage: gameState.currentStage,
+          total_taps: gameState.totalTaps,
+          rug_meter: gameState.rugMeter,
+          high_score: gameState.highScore,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      // Log game event
+      await supabase
+        .from('game_events')
+        .insert({
+          user_id: user.id,
+          event_type: 'tap',
+          stage: gameState.currentStage,
+          taps: gameState.totalTaps
+        })
+
+    } catch (error) {
+      console.error('Failed to sync game state:', error)
+    }
+  }, [user, isOnline, gameState])
+
+  // Auto-sync when coming back online
+  useEffect(() => {
+    if (isOnline && user) {
+      syncGameState()
+    }
+  }, [isOnline, user, syncGameState])
 
   const handleTap = useCallback(() => {
     const now = Date.now()
@@ -210,38 +241,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       syncGameState()
     }
   }, [gameState, user, isOnline, addSlipMessage, syncGameState])
-
-  const syncGameState = useCallback(async () => {
-    if (!user || !isOnline) return
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          current_stage: gameState.currentStage,
-          total_taps: gameState.totalTaps,
-          rug_meter: gameState.rugMeter,
-          high_score: gameState.highScore,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id)
-
-      if (error) throw error
-
-      // Log game event
-      await supabase
-        .from('game_events')
-        .insert({
-          user_id: user.id,
-          event_type: 'tap',
-          stage: gameState.currentStage,
-          taps: gameState.totalTaps
-        })
-
-    } catch (error) {
-      console.error('Failed to sync game state:', error)
-    }
-  }, [user, isOnline, gameState])
 
   const contextValue: GameContextType = {
     gameState,
