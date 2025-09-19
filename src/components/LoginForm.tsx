@@ -27,7 +27,7 @@ export default function LoginForm() {
       } else if (isSignUp) {
         setMessage('Check your email for verification link!')
       }
-    } catch (error) {
+    } catch {
       setMessage('An unexpected error occurred')
     } finally {
       setLoading(false)

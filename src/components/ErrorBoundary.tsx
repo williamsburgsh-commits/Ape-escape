@@ -34,7 +34,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               Oops! Something went wrong
             </h1>
             <p className="text-yellow-300 font-press-start text-sm mb-6">
-              The ape got confused and crashed the game. Don't worry, your progress is safe!
+              The ape got confused and crashed the game. Don&apos;t worry, your progress is safe!
             </p>
             
             <div className="space-y-4">

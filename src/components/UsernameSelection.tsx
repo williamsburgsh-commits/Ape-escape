@@ -57,7 +57,7 @@ export default function UsernameSelection() {
           updated_at: '' 
         })
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)

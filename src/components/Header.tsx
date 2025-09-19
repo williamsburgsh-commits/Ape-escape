@@ -6,7 +6,7 @@ import { useGame } from '@/contexts/GameContext'
 
 export default function Header() {
   const { user, signOut } = useAuth()
-  const { gameState, isOnline } = useGame()
+  const { isOnline } = useGame()
 
   return (
     <header className="bg-black/20 backdrop-blur-sm border-b-2 border-yellow-400 px-6 py-4">

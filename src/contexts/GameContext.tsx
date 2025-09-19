@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { GameState, SlipMessage, UserProfile, GameEvent, STAGE_FORMULA, SLIP_CHANCE, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES } from '@/types/game'
+import { GameState, SlipMessage, UserProfile, STAGE_FORMULA, SLIP_CHANCE, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES } from '@/types/game'
 
 interface GameContextType {
   gameState: GameState
@@ -148,7 +148,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (isOnline && user) {
       syncGameState()
     }
-  }, [isOnline, user])
+  }, [isOnline, user, syncGameState])
 
   const addSlipMessage = useCallback((message: string) => {
     const id = Math.random().toString(36).substr(2, 9)
@@ -209,7 +209,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (isOnline && user) {
       syncGameState()
     }
-  }, [gameState, user, isOnline, addSlipMessage])
+  }, [gameState, user, isOnline, addSlipMessage, syncGameState])
 
   const syncGameState = useCallback(async () => {
     if (!user || !isOnline) return
