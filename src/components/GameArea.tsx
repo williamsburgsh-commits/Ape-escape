@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useGame } from '@/contexts/GameContext'
-import { STAGE_FORMULA } from '@/types/game'
+import { STAGE_FORMULA, RUG_METER_ZONES } from '@/types/game'
 
 export default function GameArea() {
   const { gameState, handleTap, slipMessages } = useGame()
@@ -11,6 +11,13 @@ export default function GameArea() {
 
   const tapsToNextStage = STAGE_FORMULA(gameState.currentStage)
   const progressPercentage = (gameState.rugMeter / tapsToNextStage) * 100
+
+  // Get Rug Meter color based on progress
+  const getRugMeterColor = (progress: number) => {
+    if (progress <= RUG_METER_ZONES.SAFE.max) return 'bg-green-500'
+    if (progress <= RUG_METER_ZONES.WARNING.max) return 'bg-yellow-500'
+    return 'bg-red-500'
+  }
 
   const handleApeClick = () => {
     setIsAnimating(true)
@@ -49,16 +56,32 @@ export default function GameArea() {
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="w-96 mb-8">
+        {/* Stage Progress Bar */}
+        <div className="w-96 mb-4">
+          <div className="text-yellow-400 font-press-start text-sm mb-2">
+            Stage Progress: {gameState.rugMeter} / {tapsToNextStage}
+          </div>
           <div className="w-full bg-black/50 rounded-full h-6 mb-2">
             <div
               className="bg-yellow-400 h-6 rounded-full transition-all duration-300"
               style={{ width: `${Math.min(progressPercentage, 100)}%` }}
             />
           </div>
-          <div className="text-yellow-300 font-press-start text-sm">
-            {gameState.rugMeter} / {tapsToNextStage}
+        </div>
+
+        {/* Rug Meter */}
+        <div className="w-96 mb-8">
+          <div className="text-yellow-400 font-press-start text-sm mb-2">
+            Rug Meter: {(gameState.slipChance * 100).toFixed(1)}% Slip Chance
+          </div>
+          <div className="w-full bg-black/50 rounded-full h-6 mb-2">
+            <div
+              className={`${getRugMeterColor(gameState.rugMeterProgress)} h-6 rounded-full transition-all duration-300`}
+              style={{ width: `${Math.min(gameState.rugMeterProgress, 100)}%` }}
+            />
+          </div>
+          <div className="text-yellow-300 font-press-start text-xs text-center">
+            {Math.floor(gameState.rugMeterProgress)}% Progress
           </div>
         </div>
 

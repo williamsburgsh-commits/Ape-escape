@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { GameState, SlipMessage, UserProfile, STAGE_FORMULA, SLIP_CHANCE, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES } from '@/types/game'
+import { GameState, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, RUG_METER_ZONES, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES } from '@/types/game'
 
 interface GameContextType {
   gameState: GameState
@@ -20,6 +20,9 @@ type GameAction =
   | { type: 'TAP' }
   | { type: 'SLIP' }
   | { type: 'STAGE_UP' }
+  | { type: 'PARTIAL_SETBACK'; payload: number }
+  | { type: 'UPDATE_RUG_METER' }
+  | { type: 'RESET_SESSION' }
   | { type: 'SET_USER'; payload: UserProfile | null }
   | { type: 'SET_OFFLINE'; payload: boolean }
   | { type: 'SYNC_STATE'; payload: Partial<GameState> }
@@ -34,7 +37,14 @@ const initialState: GameState = {
   lastTapTime: 0,
   tapCount: 0,
   isOffline: false,
-  lastSyncTime: Date.now()
+  lastSyncTime: Date.now(),
+  // Rug Meter system
+  rugMeterProgress: 0,
+  slipChance: RUG_METER_BASE_CHANCE,
+  // Session tracking
+  sessionTaps: 0,
+  sessionSlips: 0,
+  sessionStartTime: Date.now()
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -46,9 +56,20 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const newTotalTaps = state.totalTaps + 1
       const newRugMeter = state.rugMeter + 1
       const newHighScore = Math.max(state.highScore, newTotalTaps)
+      const newSessionTaps = state.sessionTaps + 1
       
       const tapsToNextStage = STAGE_FORMULA(state.currentStage)
       const shouldStageUp = newRugMeter >= tapsToNextStage
+      
+      // Calculate new rug meter progress within current stage
+      const newRugMeterProgress = shouldStageUp ? 0 : 
+        Math.min(RUG_METER_MAX_PROGRESS, (newRugMeter % RUG_METER_INCREASE_INTERVAL) / RUG_METER_INCREASE_INTERVAL * 100)
+      
+      // Calculate slip chance based on rug meter progress
+      const newSlipChance = Math.min(
+        RUG_METER_MAX_CHANCE,
+        RUG_METER_BASE_CHANCE + (Math.floor(newRugMeter / RUG_METER_INCREASE_INTERVAL) * 0.01)
+      )
       
       return {
         ...state,
@@ -57,19 +78,67 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         currentStage: shouldStageUp ? state.currentStage + 1 : state.currentStage,
         highScore: newHighScore,
         lastTapTime: now,
-        tapCount: timeSinceLastTap < 1000 ? state.tapCount + 1 : 1
+        tapCount: timeSinceLastTap < 1000 ? state.tapCount + 1 : 1,
+        rugMeterProgress: newRugMeterProgress,
+        slipChance: newSlipChance,
+        sessionTaps: newSessionTaps
       }
     }
     case 'SLIP': {
+      const newSessionSlips = state.sessionSlips + 1
+      const stagesToDrop = getPartialSetback(state.currentStage, state.sessionSlips)
+      const newStage = Math.max(1, state.currentStage - stagesToDrop)
+      const newRugMeter = Math.max(0, state.rugMeter - Math.floor(state.rugMeter * 0.1))
+      
+      // Reset rug meter progress and slip chance when slipping
+      const newRugMeterProgress = 0
+      const newSlipChance = RUG_METER_BASE_CHANCE
+      
       return {
         ...state,
-        rugMeter: Math.max(0, state.rugMeter - Math.floor(state.rugMeter * 0.1))
+        currentStage: newStage,
+        rugMeter: newRugMeter,
+        rugMeterProgress: newRugMeterProgress,
+        slipChance: newSlipChance,
+        sessionSlips: newSessionSlips
       }
     }
     case 'STAGE_UP': {
       return {
         ...state,
-        rugMeter: 0
+        rugMeter: 0,
+        rugMeterProgress: 0,
+        slipChance: RUG_METER_BASE_CHANCE
+      }
+    }
+    case 'PARTIAL_SETBACK': {
+      const newStage = Math.max(1, state.currentStage - action.payload)
+      return {
+        ...state,
+        currentStage: newStage,
+        rugMeter: 0,
+        rugMeterProgress: 0,
+        slipChance: RUG_METER_BASE_CHANCE
+      }
+    }
+    case 'UPDATE_RUG_METER': {
+      const newRugMeterProgress = Math.min(RUG_METER_MAX_PROGRESS, (state.rugMeter % RUG_METER_INCREASE_INTERVAL) / RUG_METER_INCREASE_INTERVAL * 100)
+      const newSlipChance = Math.min(
+        RUG_METER_MAX_CHANCE,
+        RUG_METER_BASE_CHANCE + (Math.floor(state.rugMeter / RUG_METER_INCREASE_INTERVAL) * 0.01)
+      )
+      return {
+        ...state,
+        rugMeterProgress: newRugMeterProgress,
+        slipChance: newSlipChance
+      }
+    }
+    case 'RESET_SESSION': {
+      return {
+        ...state,
+        sessionTaps: 0,
+        sessionSlips: 0,
+        sessionStartTime: Date.now()
       }
     }
     case 'SET_USER':
@@ -213,8 +282,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    // Check for slip
-    if (Math.random() < SLIP_CHANCE) {
+    // Check for slip using dynamic Rug Meter
+    if (Math.random() < gameState.slipChance) {
       dispatch({ type: 'SLIP' })
       const randomMessage = SLIP_MESSAGES[Math.floor(Math.random() * SLIP_MESSAGES.length)]
       addSlipMessage(randomMessage)
