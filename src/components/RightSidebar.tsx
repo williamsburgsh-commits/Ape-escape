@@ -47,7 +47,7 @@ export default function RightSidebar() {
     },
     {
       label: 'Rug Count',
-      value: gameState.rugMeter,
+      value: gameState.rugCount,
       icon: '🦍'
     },
     {

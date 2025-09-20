@@ -2,6 +2,7 @@ export interface GameState {
   currentStage: number
   totalTaps: number
   rugMeter: number
+  rugCount: number // Total number of slips/rugs that have occurred
   highScore: number
   lastTapTime: number
   tapCount: number
@@ -28,6 +29,7 @@ export interface UserProfile {
   current_stage: number
   total_taps: number
   rug_meter: number
+  rug_count: number
   high_score: number
   suspicious_activity_count: number
   created_at: string

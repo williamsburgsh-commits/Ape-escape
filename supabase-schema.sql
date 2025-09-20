@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   current_stage INTEGER DEFAULT 1,
   total_taps INTEGER DEFAULT 0,
   rug_meter INTEGER DEFAULT 0,
+  rug_count INTEGER DEFAULT 0,
   high_score INTEGER DEFAULT 0,
   suspicious_activity_count INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

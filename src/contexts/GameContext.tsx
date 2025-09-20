@@ -33,6 +33,7 @@ const initialState: GameState = {
   currentStage: 1,
   totalTaps: 0,
   rugMeter: 0,
+  rugCount: 0,
   highScore: 0,
   lastTapTime: 0,
   tapCount: 0,
@@ -86,6 +87,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case 'SLIP': {
       const newSessionSlips = state.sessionSlips + 1
+      const newRugCount = state.rugCount + 1
       const stagesToDrop = getPartialSetback(state.currentStage, state.sessionSlips)
       const newStage = Math.max(1, state.currentStage - stagesToDrop)
       const newRugMeter = Math.max(0, state.rugMeter - Math.floor(state.rugMeter * 0.1))
@@ -98,6 +100,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         currentStage: newStage,
         rugMeter: newRugMeter,
+        rugCount: newRugCount,
         rugMeterProgress: newRugMeterProgress,
         slipChance: newSlipChance,
         sessionSlips: newSessionSlips
@@ -148,6 +151,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           currentStage: action.payload.current_stage,
           totalTaps: action.payload.total_taps,
           rugMeter: action.payload.rug_meter,
+          rugCount: action.payload.rug_count || 0,
           highScore: action.payload.high_score
         })
       }
@@ -237,6 +241,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           current_stage: gameState.currentStage,
           total_taps: gameState.totalTaps,
           rug_meter: gameState.rugMeter,
+          rug_count: gameState.rugCount,
           high_score: gameState.highScore,
           updated_at: new Date().toISOString()
         })
