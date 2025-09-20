@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { GameState, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, RUG_METER_ZONES, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES } from '@/types/game'
+import { GameState, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, RUG_METER_ZONES, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES, calculateStageApeReward, calculateSlipCompensation, calculateConsecutiveSlipBonus, getMilestoneReward, APE_EARNINGS, APE_SPENDING } from '@/types/game'
 
 interface GameContextType {
   gameState: GameState
@@ -12,6 +12,8 @@ interface GameContextType {
   handleTap: () => void
   syncGameState: () => Promise<void>
   setUser: (user: UserProfile | null) => void
+  buyInsurance: () => void
+  resetRugMeter: () => void
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -28,6 +30,12 @@ type GameAction =
   | { type: 'SYNC_STATE'; payload: Partial<GameState> }
   | { type: 'ADD_SLIP_MESSAGE'; payload: SlipMessage }
   | { type: 'REMOVE_SLIP_MESSAGE'; payload: string }
+  | { type: 'ADD_APE'; payload: number }
+  | { type: 'SPEND_APE'; payload: number }
+  | { type: 'BUY_INSURANCE' }
+  | { type: 'RESET_RUG_METER' }
+  | { type: 'AWARD_TRAGIC_HERO' }
+  | { type: 'DAILY_LOGIN' }
 
 const initialState: GameState = {
   currentStage: 1,
@@ -45,7 +53,16 @@ const initialState: GameState = {
   // Session tracking
   sessionTaps: 0,
   sessionSlips: 0,
-  sessionStartTime: Date.now()
+  sessionStartTime: Date.now(),
+  // APE Economy
+  apeBalance: 0,
+  consecutiveSlips: 0,
+  lastLoginDate: new Date().toISOString().split('T')[0],
+  dailyApeEarned: 0,
+  dailyTaps: 0,
+  tragicHeroBadges: 0,
+  insuranceActive: false,
+  insuranceTapsLeft: 0
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -58,6 +75,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const newRugMeter = state.rugMeter + 1
       const newHighScore = Math.max(state.highScore, newTotalTaps)
       const newSessionTaps = state.sessionTaps + 1
+      const newDailyTaps = state.dailyTaps + 1
       
       const tapsToNextStage = STAGE_FORMULA(state.currentStage)
       const shouldStageUp = newRugMeter >= tapsToNextStage
@@ -72,6 +90,58 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         RUG_METER_BASE_CHANCE + (Math.floor(newRugMeter / RUG_METER_INCREASE_INTERVAL) * 0.01)
       )
       
+      // Calculate APE rewards
+      let newApeBalance = state.apeBalance
+      let newDailyApeEarned = state.dailyApeEarned
+      
+      if (shouldStageUp) {
+        const stageReward = calculateStageApeReward(state.currentStage)
+        const milestoneReward = getMilestoneReward(state.currentStage + 1)
+        const totalReward = stageReward + milestoneReward
+        
+        // Check daily cap
+        if (newDailyApeEarned + totalReward <= APE_EARNINGS.DAILY_CAP) {
+          newApeBalance += totalReward
+          newDailyApeEarned += totalReward
+        }
+      }
+      
+      // Check daily tap goals
+      const dailyGoalReward = Object.entries(APE_EARNINGS.DAILY_GOALS)
+        .filter(([goal, reward]) => newDailyTaps >= parseInt(goal))
+        .reduce((max, [, reward]) => Math.max(max, reward), 0)
+      
+      if (dailyGoalReward > 0 && newDailyApeEarned + dailyGoalReward <= APE_EARNINGS.DAILY_CAP) {
+        newApeBalance += dailyGoalReward
+        newDailyApeEarned += dailyGoalReward
+      }
+      
+      // Update insurance taps if active
+      let newInsuranceTapsLeft = state.insuranceTapsLeft
+      if (state.insuranceActive && newInsuranceTapsLeft > 0) {
+        newInsuranceTapsLeft -= 1
+        if (newInsuranceTapsLeft === 0) {
+          // Insurance expired
+          return {
+            ...state,
+            totalTaps: newTotalTaps,
+            rugMeter: shouldStageUp ? 0 : newRugMeter,
+            currentStage: shouldStageUp ? state.currentStage + 1 : state.currentStage,
+            highScore: newHighScore,
+            lastTapTime: now,
+            tapCount: timeSinceLastTap < 1000 ? state.tapCount + 1 : 1,
+            rugMeterProgress: newRugMeterProgress,
+            slipChance: newSlipChance,
+            sessionTaps: newSessionTaps,
+            dailyTaps: newDailyTaps,
+            apeBalance: newApeBalance,
+            dailyApeEarned: newDailyApeEarned,
+            insuranceActive: false,
+            insuranceTapsLeft: 0
+          }
+        }
+      }
+      
       return {
         ...state,
         totalTaps: newTotalTaps,
@@ -82,12 +152,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         tapCount: timeSinceLastTap < 1000 ? state.tapCount + 1 : 1,
         rugMeterProgress: newRugMeterProgress,
         slipChance: newSlipChance,
-        sessionTaps: newSessionTaps
+        sessionTaps: newSessionTaps,
+        dailyTaps: newDailyTaps,
+        apeBalance: newApeBalance,
+        dailyApeEarned: newDailyApeEarned,
+        insuranceTapsLeft: newInsuranceTapsLeft
       }
     }
     case 'SLIP': {
       const newSessionSlips = state.sessionSlips + 1
       const newRugCount = state.rugCount + 1
+      const newConsecutiveSlips = state.consecutiveSlips + 1
       const stagesToDrop = getPartialSetback(state.currentStage, state.sessionSlips)
       const newStage = Math.max(1, state.currentStage - stagesToDrop)
       const newRugMeter = Math.max(0, state.rugMeter - Math.floor(state.rugMeter * 0.1))
@@ -96,6 +171,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const newRugMeterProgress = 0
       const newSlipChance = RUG_METER_BASE_CHANCE
       
+      // Calculate APE compensation
+      const slipCompensation = calculateSlipCompensation(stagesToDrop)
+      const consecutiveBonus = calculateConsecutiveSlipBonus(newConsecutiveSlips)
+      const totalCompensation = slipCompensation + consecutiveBonus
+      
+      // Check for Tragic Hero (3 consecutive slips without progress)
+      const shouldAwardTragicHero = newConsecutiveSlips >= 3 && newStage <= state.currentStage
+      
       return {
         ...state,
         currentStage: newStage,
@@ -103,7 +186,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         rugCount: newRugCount,
         rugMeterProgress: newRugMeterProgress,
         slipChance: newSlipChance,
-        sessionSlips: newSessionSlips
+        sessionSlips: newSessionSlips,
+        consecutiveSlips: newConsecutiveSlips,
+        apeBalance: state.apeBalance + totalCompensation,
+        tragicHeroBadges: shouldAwardTragicHero ? state.tragicHeroBadges + 1 : state.tragicHeroBadges
       }
     }
     case 'STAGE_UP': {
@@ -111,7 +197,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         rugMeter: 0,
         rugMeterProgress: 0,
-        slipChance: RUG_METER_BASE_CHANCE
+        slipChance: RUG_METER_BASE_CHANCE,
+        consecutiveSlips: 0 // Reset consecutive slips on stage up
       }
     }
     case 'PARTIAL_SETBACK': {
@@ -152,7 +239,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           totalTaps: action.payload.total_taps,
           rugMeter: action.payload.rug_meter,
           rugCount: action.payload.rug_count || 0,
-          highScore: action.payload.high_score
+          highScore: action.payload.high_score,
+          apeBalance: action.payload.ape_balance || 0,
+          consecutiveSlips: action.payload.consecutive_slips || 0,
+          lastLoginDate: action.payload.last_login_date || new Date().toISOString().split('T')[0],
+          dailyApeEarned: action.payload.daily_ape_earned || 0,
+          dailyTaps: action.payload.daily_taps || 0,
+          tragicHeroBadges: action.payload.tragic_hero_badges || 0,
+          insuranceActive: action.payload.insurance_active || false,
+          insuranceTapsLeft: action.payload.insurance_taps_left || 0
         })
       }
     case 'SET_OFFLINE':
@@ -165,6 +260,50 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         ...action.payload
       }
+    case 'ADD_APE':
+      return {
+        ...state,
+        apeBalance: state.apeBalance + action.payload
+      }
+    case 'SPEND_APE':
+      return {
+        ...state,
+        apeBalance: Math.max(0, state.apeBalance - action.payload)
+      }
+    case 'BUY_INSURANCE':
+      return {
+        ...state,
+        apeBalance: state.apeBalance - APE_SPENDING.SLIP_INSURANCE,
+        insuranceActive: true,
+        insuranceTapsLeft: 50
+      }
+    case 'RESET_RUG_METER':
+      return {
+        ...state,
+        apeBalance: state.apeBalance - APE_SPENDING.RESET_RUG_METER,
+        rugMeter: 0,
+        rugMeterProgress: 0,
+        slipChance: RUG_METER_BASE_CHANCE
+      }
+    case 'AWARD_TRAGIC_HERO':
+      return {
+        ...state,
+        tragicHeroBadges: state.tragicHeroBadges + 1
+      }
+    case 'DAILY_LOGIN': {
+      const today = new Date().toISOString().split('T')[0]
+      if (state.lastLoginDate !== today) {
+        const loginReward = Math.min(APE_EARNINGS.DAILY_LOGIN, APE_EARNINGS.DAILY_LOGIN_MAX)
+        return {
+          ...state,
+          lastLoginDate: today,
+          apeBalance: state.apeBalance + loginReward,
+          dailyApeEarned: 0,
+          dailyTaps: 0
+        }
+      }
+      return state
+    }
     default:
       return state
   }
@@ -243,6 +382,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           rug_meter: gameState.rugMeter,
           rug_count: gameState.rugCount,
           high_score: gameState.highScore,
+          ape_balance: gameState.apeBalance,
+          consecutive_slips: gameState.consecutiveSlips,
+          last_login_date: gameState.lastLoginDate,
+          daily_ape_earned: gameState.dailyApeEarned,
+          daily_taps: gameState.dailyTaps,
+          tragic_hero_badges: gameState.tragicHeroBadges,
+          insurance_active: gameState.insuranceActive,
+          insurance_taps_left: gameState.insuranceTapsLeft,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id)
@@ -316,6 +463,28 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [gameState, user, isOnline, addSlipMessage, syncGameState])
 
+  const buyInsurance = useCallback(() => {
+    if (gameState.apeBalance >= APE_SPENDING.SLIP_INSURANCE && !gameState.insuranceActive) {
+      dispatch({ type: 'BUY_INSURANCE' })
+      addSlipMessage("Insurance activated! Protected for 50 taps! 🛡️")
+    } else if (gameState.insuranceActive) {
+      addSlipMessage("Insurance already active! 🛡️")
+    } else {
+      addSlipMessage("Not enough APE! Need 100 APE for insurance! 💰")
+    }
+  }, [gameState.apeBalance, gameState.insuranceActive, addSlipMessage])
+
+  const resetRugMeter = useCallback(() => {
+    if (gameState.apeBalance >= APE_SPENDING.RESET_RUG_METER && gameState.slipChance > 0.01) {
+      dispatch({ type: 'RESET_RUG_METER' })
+      addSlipMessage("Rug meter reset! Risk back to 1%! 🔄")
+    } else if (gameState.slipChance <= 0.01) {
+      addSlipMessage("Rug meter already at minimum risk! ✅")
+    } else {
+      addSlipMessage("Not enough APE! Need 50 APE to reset risk! 💰")
+    }
+  }, [gameState.apeBalance, gameState.slipChance, addSlipMessage])
+
   const contextValue: GameContextType = {
     gameState,
     user,
@@ -323,7 +492,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     isOnline,
     handleTap,
     syncGameState,
-    setUser
+    setUser,
+    buyInsurance,
+    resetRugMeter
   }
 
   return (

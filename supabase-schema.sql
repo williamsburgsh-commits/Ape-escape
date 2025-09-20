@@ -12,6 +12,14 @@ CREATE TABLE IF NOT EXISTS profiles (
   rug_count INTEGER DEFAULT 0,
   high_score INTEGER DEFAULT 0,
   suspicious_activity_count INTEGER DEFAULT 0,
+  ape_balance INTEGER DEFAULT 0,
+  consecutive_slips INTEGER DEFAULT 0,
+  last_login_date DATE DEFAULT CURRENT_DATE,
+  daily_ape_earned INTEGER DEFAULT 0,
+  daily_taps INTEGER DEFAULT 0,
+  tragic_hero_badges INTEGER DEFAULT 0,
+  insurance_active BOOLEAN DEFAULT FALSE,
+  insurance_taps_left INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

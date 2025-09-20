@@ -15,6 +15,15 @@ export interface GameState {
   sessionTaps: number
   sessionSlips: number
   sessionStartTime: number
+  // APE Economy
+  apeBalance: number
+  consecutiveSlips: number
+  lastLoginDate: string
+  dailyApeEarned: number
+  dailyTaps: number
+  tragicHeroBadges: number
+  insuranceActive: boolean
+  insuranceTapsLeft: number
 }
 
 export interface SlipMessage {
@@ -32,6 +41,14 @@ export interface UserProfile {
   rug_count: number
   high_score: number
   suspicious_activity_count: number
+  ape_balance: number
+  consecutive_slips: number
+  last_login_date: string
+  daily_ape_earned: number
+  daily_taps: number
+  tragic_hero_badges: number
+  insurance_active: boolean
+  insurance_taps_left: number
   created_at: string
   updated_at: string
 }
@@ -82,4 +99,53 @@ export const getPartialSetback = (stage: number, sessionSlips: number): number =
   if (stage >= 11 && stage <= 25) return Math.floor(Math.random() * 2) + 1 // 1-2
   if (stage >= 26 && stage <= 50) return Math.floor(Math.random() * 2) + 2 // 2-3
   return Math.floor(Math.random() * 2) + 3 // 3-4
+}
+
+// APE Economy Constants
+export const APE_EARNINGS = {
+  PER_STAGE_BASE: 5,
+  PER_STAGE_MULTIPLIER: 5,
+  DAILY_LOGIN: 5,
+  DAILY_LOGIN_MAX: 50,
+  DAILY_LOGIN_DAYS: 10,
+  DAILY_CAP: 500,
+  SLIP_COMPENSATION_BASE: 5,
+  SLIP_COMPENSATION_MULTIPLIER: 10,
+  CONSECUTIVE_SLIP_BONUS: 10,
+  CONSECUTIVE_SLIP_MAX: 50,
+  DAILY_GOALS: {
+    500: 20,
+    1000: 40
+  }
+} as const
+
+export const APE_MILESTONES = {
+  5: 50,
+  10: 100,
+  25: 250,
+  50: 500,
+  75: 750,
+  100: 1500
+} as const
+
+export const APE_SPENDING = {
+  SLIP_INSURANCE: 100,
+  RESET_RUG_METER: 50
+} as const
+
+// APE Economy Functions
+export const calculateStageApeReward = (stage: number): number => {
+  return APE_EARNINGS.PER_STAGE_BASE + Math.floor(stage / 5) * APE_EARNINGS.PER_STAGE_MULTIPLIER
+}
+
+export const calculateSlipCompensation = (stagesLost: number): number => {
+  return APE_EARNINGS.SLIP_COMPENSATION_BASE + (APE_EARNINGS.SLIP_COMPENSATION_MULTIPLIER * stagesLost)
+}
+
+export const calculateConsecutiveSlipBonus = (consecutiveSlips: number): number => {
+  return Math.min(consecutiveSlips * APE_EARNINGS.CONSECUTIVE_SLIP_BONUS, APE_EARNINGS.CONSECUTIVE_SLIP_MAX)
+}
+
+export const getMilestoneReward = (stage: number): number => {
+  return APE_MILESTONES[stage as keyof typeof APE_MILESTONES] || 0
 }

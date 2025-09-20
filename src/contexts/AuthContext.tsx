@@ -69,7 +69,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               rug_meter: 0,
               rug_count: 0,
               high_score: 0,
-              suspicious_activity_count: 0
+              suspicious_activity_count: 0,
+              ape_balance: 0,
+              consecutive_slips: 0,
+              last_login_date: new Date().toISOString().split('T')[0],
+              daily_ape_earned: 0,
+              daily_taps: 0,
+              tragic_hero_badges: 0,
+              insurance_active: false,
+              insurance_taps_left: 0
             })
             .select()
             .single()

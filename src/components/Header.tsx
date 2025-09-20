@@ -6,7 +6,7 @@ import { useGame } from '@/contexts/GameContext'
 
 export default function Header() {
   const { user, profile, signOut } = useAuth()
-  const { isOnline } = useGame()
+  const { gameState, isOnline } = useGame()
 
   return (
     <header className="bg-black/20 backdrop-blur-sm border-b-2 border-yellow-400 px-6 py-4">
@@ -19,10 +19,11 @@ export default function Header() {
           </h1>
         </div>
 
-        {/* APE Balance Placeholder */}
+        {/* APE Balance */}
         <div className="text-center">
-          <div className="text-yellow-400 font-press-start text-lg">
-            APE Balance: Coming Soon
+          <div className="text-yellow-400 font-press-start text-lg flex items-center space-x-2">
+            <span className="text-2xl">🪙</span>
+            <span>APE: {gameState.apeBalance.toLocaleString()}</span>
           </div>
         </div>
 

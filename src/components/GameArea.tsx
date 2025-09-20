@@ -5,7 +5,7 @@ import { useGame } from '@/contexts/GameContext'
 import { STAGE_FORMULA, RUG_METER_ZONES } from '@/types/game'
 
 export default function GameArea() {
-  const { gameState, handleTap, slipMessages } = useGame()
+  const { gameState, handleTap, slipMessages, buyInsurance, resetRugMeter } = useGame()
   const [isAnimating, setIsAnimating] = useState(false)
   const [showStageUp, setShowStageUp] = useState(false)
 
@@ -95,6 +95,42 @@ export default function GameArea() {
               className={`${getRugMeterColorBySlipChance(gameState.slipChance)} h-6 rounded-full transition-all duration-300`}
               style={{ width: `${Math.min(gameState.rugMeterProgress, 100)}%` }}
             />
+          </div>
+          
+          {/* APE Spending Buttons */}
+          <div className="flex justify-center space-x-4 mt-4">
+            {/* Slip Insurance Button */}
+            <button
+              onClick={buyInsurance}
+              disabled={gameState.apeBalance < 100 || gameState.insuranceActive}
+              className={`px-4 py-2 rounded font-press-start text-sm transition-colors ${
+                gameState.insuranceActive
+                  ? 'bg-green-600 text-white cursor-not-allowed'
+                  : gameState.apeBalance >= 100
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {gameState.insuranceActive 
+                ? `Protected! ${gameState.insuranceTapsLeft} taps left` 
+                : 'Buy Insurance (100 APE)'
+              }
+            </button>
+            
+            {/* Reset Rug Meter Button */}
+            <button
+              onClick={resetRugMeter}
+              disabled={gameState.apeBalance < 50 || gameState.slipChance <= 0.01}
+              className={`px-4 py-2 rounded font-press-start text-sm transition-colors ${
+                gameState.slipChance <= 0.01
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : gameState.apeBalance >= 50
+                  ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Reset Risk (50 APE)
+            </button>
           </div>
         </div>
       </div>
