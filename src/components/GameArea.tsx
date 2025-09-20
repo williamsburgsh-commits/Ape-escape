@@ -35,7 +35,7 @@ export default function GameArea() {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 relative">
+    <div className="flex-1 flex flex-col items-center justify-start pt-16 p-8 relative">
       {/* Stage Up Animation */}
       {showStageUp && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
@@ -45,8 +45,8 @@ export default function GameArea() {
         </div>
       )}
 
-      {/* Main Game Area - Centered with compact hierarchy */}
-      <div className="text-center space-y-6">
+      {/* Main Game Area - Higher up with compact hierarchy */}
+      <div className="text-center space-y-5">
         {/* 1. Stage Display - Prominent but not overwhelming */}
         <div>
           <h1 className="text-yellow-400 font-press-start text-4xl mb-2">

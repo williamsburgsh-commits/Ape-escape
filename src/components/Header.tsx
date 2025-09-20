@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useGame } from '@/contexts/GameContext'
 
 export default function Header() {
-  const { user, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const { isOnline } = useGame()
 
   return (
@@ -41,7 +41,7 @@ export default function Header() {
           {user && (
             <div className="flex items-center space-x-2">
               <span className="text-yellow-400 font-press-start text-sm">
-                {user.email}
+                {profile?.username || user.email}
               </span>
               <button
                 onClick={signOut}

@@ -99,21 +99,6 @@ export default function RightSidebar() {
           </div>
         ))}
 
-        {/* Rug Meter */}
-        <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg p-4">
-          <div className="text-yellow-400 font-press-start text-sm mb-2">
-            Rug Meter - {(gameState.slipChance * 100).toFixed(1)}% Slip Chance
-          </div>
-          <div className="w-full bg-black/50 rounded-full h-4 mb-2">
-            <div
-              className={`${getRugMeterColor(gameState.rugMeterProgress)} h-4 rounded-full transition-all duration-300`}
-              style={{ width: `${Math.min(gameState.rugMeterProgress, 100)}%` }}
-            />
-          </div>
-          <div className="text-yellow-300 font-press-start text-xs text-center">
-            {Math.floor(gameState.rugMeterProgress)}% Progress
-          </div>
-        </div>
 
         {/* Session Stats */}
         <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg p-4">
