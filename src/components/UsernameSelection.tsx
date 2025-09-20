@@ -51,6 +51,7 @@ export default function UsernameSelection() {
           current_stage: 1, 
           total_taps: 0, 
           rug_meter: 0, 
+          rug_count: 0, 
           high_score: 0, 
           suspicious_activity_count: 0, 
           created_at: '', 
