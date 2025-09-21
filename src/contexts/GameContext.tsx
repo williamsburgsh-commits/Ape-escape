@@ -332,7 +332,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         apeBalance: state.apeBalance - APE_SPENDING.RESET_RUG_METER,
-        rugMeter: 0,
+        // Only reset risk-related fields, NOT rugMeter (stage progress)
         rugMeterProgress: 0,
         slipChance: RUG_METER_BASE_CHANCE
       }
