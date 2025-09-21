@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
@@ -12,8 +12,12 @@ const menuItems = [
   { id: 'settings', label: 'Settings', icon: '⚙️' }
 ]
 
-export default function LeftSidebar() {
-  const [activeItem, setActiveItem] = useState('dashboard')
+interface LeftSidebarProps {
+  activeItem: string
+  onItemClick: (itemId: string) => void
+}
+
+export default function LeftSidebar({ activeItem, onItemClick }: LeftSidebarProps) {
 
   return (
     <aside className="w-64 bg-black/30 backdrop-blur-sm border-r-2 border-yellow-400 p-6">
@@ -25,7 +29,7 @@ export default function LeftSidebar() {
         {menuItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => setActiveItem(item.id)}
+            onClick={() => onItemClick(item.id)}
             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 font-press-start text-sm ${
               activeItem === item.id
                 ? 'bg-yellow-400 text-black'

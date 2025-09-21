@@ -10,10 +10,12 @@ import Header from '@/components/Header'
 import LeftSidebar from '@/components/LeftSidebar'
 import RightSidebar from '@/components/RightSidebar'
 import GameArea from '@/components/GameArea'
+import ProfileReferral from '@/components/ProfileReferral'
 
 function GameApp() {
   const { user, profile, loading } = useAuth()
   const { setUser } = useGame()
+  const [activeTab, setActiveTab] = React.useState('dashboard')
 
   // Set user profile in game context when it changes
   React.useEffect(() => {
@@ -43,12 +45,77 @@ function GameApp() {
     return <UsernameSelection />
   }
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <GameArea />
+      case 'profile':
+        return (
+          <div className="flex-1 flex flex-col items-center justify-start pt-16 p-8">
+            <div className="w-full max-w-4xl">
+              <h1 className="text-yellow-400 font-press-start text-4xl mb-8 text-center">
+                Profile
+              </h1>
+              <ProfileReferral />
+            </div>
+          </div>
+        )
+      case 'gang':
+        return (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-yellow-400 font-press-start text-4xl mb-4">Gang</h1>
+              <p className="text-yellow-300 font-press-start text-lg">Coming Soon!</p>
+            </div>
+          </div>
+        )
+      case 'leaderboard':
+        return (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-yellow-400 font-press-start text-4xl mb-4">Leaderboard</h1>
+              <p className="text-yellow-300 font-press-start text-lg">Coming Soon!</p>
+            </div>
+          </div>
+        )
+      case 'tournaments':
+        return (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-yellow-400 font-press-start text-4xl mb-4">Tournaments</h1>
+              <p className="text-yellow-300 font-press-start text-lg">Coming Soon!</p>
+            </div>
+          </div>
+        )
+      case 'premium':
+        return (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-yellow-400 font-press-start text-4xl mb-4">Premium</h1>
+              <p className="text-yellow-300 font-press-start text-lg">Coming Soon!</p>
+            </div>
+          </div>
+        )
+      case 'settings':
+        return (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-yellow-400 font-press-start text-4xl mb-4">Settings</h1>
+              <p className="text-yellow-300 font-press-start text-lg">Coming Soon!</p>
+            </div>
+          </div>
+        )
+      default:
+        return <GameArea />
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <div className="flex flex-1">
-        <LeftSidebar />
-        <GameArea />
+        <LeftSidebar activeItem={activeTab} onItemClick={setActiveTab} />
+        {renderContent()}
         <RightSidebar />
       </div>
     </div>
