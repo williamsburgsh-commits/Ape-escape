@@ -59,6 +59,9 @@ export interface UserProfile {
   tragic_hero_badges: number
   insurance_active: boolean
   insurance_taps_left: number
+  referral_code: string
+  referred_by: string | null
+  total_referrals: number
   created_at: string
   updated_at: string
 }
@@ -143,6 +146,14 @@ export const APE_SPENDING = {
   RESET_RUG_METER: 50
 } as const
 
+// Referral System Constants
+export const REFERRAL_REWARDS = {
+  NEW_USER: 15, // APE for new user when they use referral code
+  REFERRER: 20, // APE for referrer when code is used
+  STAGE_10_BONUS: 30, // APE for referrer when referee reaches stage 10
+  GANG_THRESHOLD: 10 // Total referrals needed for gang
+} as const
+
 // APE Economy Functions
 export const calculateStageApeReward = (stage: number): number => {
   return APE_EARNINGS.PER_STAGE_BASE + Math.floor(stage / 5) * APE_EARNINGS.PER_STAGE_MULTIPLIER
@@ -158,4 +169,18 @@ export const calculateConsecutiveSlipBonus = (consecutiveSlips: number): number 
 
 export const getMilestoneReward = (stage: number): number => {
   return APE_MILESTONES[stage as keyof typeof APE_MILESTONES] || 0
+}
+
+// Referral System Functions
+export const generateReferralCode = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let result = 'APE'
+  for (let i = 0; i < 5; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
+
+export const validateReferralCode = (code: string): boolean => {
+  return /^APE[A-Z0-9]{5}$/.test(code)
 }

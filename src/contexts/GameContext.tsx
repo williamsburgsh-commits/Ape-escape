@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { GameState, GameMessage, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, RUG_METER_ZONES, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES, calculateStageApeReward, calculateSlipCompensation, calculateConsecutiveSlipBonus, getMilestoneReward, APE_EARNINGS, APE_SPENDING } from '@/types/game'
+import { GameState, GameMessage, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, RUG_METER_ZONES, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES, calculateStageApeReward, calculateSlipCompensation, calculateConsecutiveSlipBonus, getMilestoneReward, APE_EARNINGS, APE_SPENDING, REFERRAL_REWARDS, generateReferralCode, validateReferralCode } from '@/types/game'
 
 interface GameContextType {
   gameState: GameState
@@ -16,6 +16,8 @@ interface GameContextType {
   buyInsurance: () => void
   resetRugMeter: () => void
   resetSessionTime: () => void
+  useReferralCode: (code: string) => Promise<boolean>
+  copyReferralCode: () => void
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -44,6 +46,8 @@ type GameAction =
   | { type: 'RESUME_SESSION' }
   | { type: 'UPDATE_ACTIVE_TIME' }
   | { type: 'RESET_SESSION_TIME' }
+  | { type: 'USE_REFERRAL_CODE'; payload: { code: string; referrerId: string } }
+  | { type: 'REFERRAL_BONUS'; payload: number }
 
 const initialState: GameState = {
   currentStage: 1,
@@ -280,6 +284,18 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         sessionActiveTime: 0,
         lastActivityTime: Date.now(),
         isSessionActive: true
+      }
+    }
+    case 'USE_REFERRAL_CODE': {
+      return {
+        ...state,
+        apeBalance: state.apeBalance + REFERRAL_REWARDS.NEW_USER
+      }
+    }
+    case 'REFERRAL_BONUS': {
+      return {
+        ...state,
+        apeBalance: state.apeBalance + action.payload
       }
     }
     case 'SET_USER':
@@ -578,6 +594,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (gameState.currentStage > oldStage) {
       dispatch({ type: 'STAGE_UP' })
       addGameMessage(`Stage Up! Evolved to Stage ${gameState.currentStage}! 🎉`, 'stage-up')
+      
+      // Check for stage 10 referral bonus
+      if (gameState.currentStage === 10 && user?.referred_by) {
+        // Award bonus to referrer
+        try {
+          const { error } = await supabase
+            .from('profiles')
+            .update({ 
+              ape_balance: user.ape_balance + REFERRAL_REWARDS.STAGE_10_BONUS
+            })
+            .eq('id', user.referred_by)
+
+          if (!error) {
+            addGameMessage(`Stage 10 reached! Your referrer got +${REFERRAL_REWARDS.STAGE_10_BONUS} APE bonus! 🎁`, 'stage-up')
+          }
+        } catch (error) {
+          console.error('Failed to award stage 10 bonus:', error)
+        }
+      }
     }
 
     // Log suspicious activity
@@ -619,6 +654,88 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     addGameMessage("Session time reset! Starting fresh! ⏰", 'info')
   }, [addGameMessage])
 
+  const useReferralCode = useCallback(async (code: string): Promise<boolean> => {
+    if (!user || !isOnline) {
+      addGameMessage("Must be online to use referral codes! 🌐", 'info')
+      return false
+    }
+
+    if (!validateReferralCode(code)) {
+      addGameMessage("Invalid referral code format! Use APE followed by 5 characters! ❌", 'info')
+      return false
+    }
+
+    try {
+      // Check if user already has a referrer
+      if (user.referred_by) {
+        addGameMessage("You already used a referral code! 🚫", 'info')
+        return false
+      }
+
+      // Find the referrer
+      const { data: referrer, error: referrerError } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .eq('referral_code', code)
+        .single()
+
+      if (referrerError || !referrer) {
+        addGameMessage("Referral code not found! Check the code and try again! 🔍", 'info')
+        return false
+      }
+
+      // Prevent self-referral
+      if (referrer.id === user.id) {
+        addGameMessage("You can't refer yourself! 😅", 'info')
+        return false
+      }
+
+      // Update user's referred_by field
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ referred_by: referrer.id })
+        .eq('id', user.id)
+
+      if (updateError) throw updateError
+
+      // Award APE to new user
+      dispatch({ type: 'USE_REFERRAL_CODE', payload: { code, referrerId: referrer.id } })
+      addGameMessage(`Referral code used! +${REFERRAL_REWARDS.NEW_USER} APE! 🎉`, 'stage-up')
+
+      // Award APE to referrer
+      const { error: referrerUpdateError } = await supabase
+        .from('profiles')
+        .update({ 
+          ape_balance: referrer.ape_balance + REFERRAL_REWARDS.REFERRER,
+          total_referrals: referrer.total_referrals + 1
+        })
+        .eq('id', referrer.id)
+
+      if (referrerUpdateError) throw referrerUpdateError
+
+      // Update local user state
+      setUser({ ...user, referred_by: referrer.id })
+
+      addGameMessage(`Referred by ${referrer.username}! Welcome to the gang! 🦍`, 'info')
+      return true
+
+    } catch (error) {
+      console.error('Failed to use referral code:', error)
+      addGameMessage("Failed to use referral code! Try again later! ⚠️", 'info')
+      return false
+    }
+  }, [user, isOnline, addGameMessage, setUser])
+
+  const copyReferralCode = useCallback(() => {
+    if (!user?.referral_code) {
+      addGameMessage("No referral code available! 🔍", 'info')
+      return
+    }
+
+    navigator.clipboard.writeText(user.referral_code)
+    addGameMessage(`Referral code copied! Share ${user.referral_code} with friends! 📋`, 'info')
+  }, [user, addGameMessage])
+
   const contextValue: GameContextType = {
     gameState,
     user,
@@ -630,7 +747,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setUser,
     buyInsurance,
     resetRugMeter,
-    resetSessionTime
+    resetSessionTime,
+    useReferralCode,
+    copyReferralCode
   }
 
   return (

@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS profiles (
   tragic_hero_badges INTEGER DEFAULT 0,
   insurance_active BOOLEAN DEFAULT FALSE,
   insurance_taps_left INTEGER DEFAULT 0,
+  referral_code TEXT UNIQUE,
+  referred_by UUID REFERENCES profiles(id),
+  total_referrals INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -37,6 +40,8 @@ CREATE TABLE IF NOT EXISTS game_events (
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username);
 CREATE INDEX IF NOT EXISTS idx_profiles_current_stage ON profiles(current_stage);
+CREATE INDEX IF NOT EXISTS idx_profiles_referral_code ON profiles(referral_code);
+CREATE INDEX IF NOT EXISTS idx_profiles_referred_by ON profiles(referred_by);
 CREATE INDEX IF NOT EXISTS idx_game_events_user_id ON game_events(user_id);
 CREATE INDEX IF NOT EXISTS idx_game_events_timestamp ON game_events(timestamp);
 
@@ -57,6 +62,31 @@ CREATE POLICY "Users can view their own game events" ON game_events
 CREATE POLICY "Users can insert their own game events" ON game_events
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+-- Function to generate referral code
+CREATE OR REPLACE FUNCTION generate_referral_code()
+RETURNS TEXT AS $$
+DECLARE
+  code TEXT;
+  exists BOOLEAN;
+BEGIN
+  LOOP
+    code := 'APE' || array_to_string(
+      ARRAY(
+        SELECT substr('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 
+                     (random() * 36)::int + 1, 1)
+        FROM generate_series(1, 5)
+      ), ''
+    );
+    
+    SELECT EXISTS(SELECT 1 FROM profiles WHERE referral_code = code) INTO exists;
+    
+    IF NOT exists THEN
+      RETURN code;
+    END IF;
+  END LOOP;
+END;
+$$ language 'plpgsql';
+
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -65,6 +95,23 @@ BEGIN
   RETURN NEW;
 END;
 $$ language 'plpgsql';
+
+-- Function to set referral code on profile creation
+CREATE OR REPLACE FUNCTION set_referral_code()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.referral_code IS NULL THEN
+    NEW.referral_code := generate_referral_code();
+  END IF;
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Trigger to automatically generate referral code
+CREATE TRIGGER set_referral_code_trigger
+  BEFORE INSERT ON profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION set_referral_code();
 
 -- Trigger to automatically update updated_at
 CREATE TRIGGER update_profiles_updated_at
