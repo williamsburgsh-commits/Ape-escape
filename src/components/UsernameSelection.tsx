@@ -62,9 +62,6 @@ export default function UsernameSelection() {
           tragic_hero_badges: 0,
           insurance_active: false,
           insurance_taps_left: 0,
-          referral_code: '',
-          referred_by: null,
-          total_referrals: 0,
           created_at: '', 
           updated_at: '' 
         })

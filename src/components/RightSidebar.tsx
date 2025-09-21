@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { useGame } from '@/contexts/GameContext'
-import ReferralDisplay from './ReferralDisplay'
 
 export default function RightSidebar() {
   const { gameState, resetSessionTime } = useGame()
@@ -130,10 +129,6 @@ export default function RightSidebar() {
           </button>
         </div>
 
-        {/* Referral System */}
-        <div className="mt-6">
-          <ReferralDisplay />
-        </div>
       </div>
     </aside>
   )

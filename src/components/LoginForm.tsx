@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import ReferralInput from './ReferralInput'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
@@ -77,11 +76,6 @@ export default function LoginForm() {
             />
           </div>
 
-          {isSignUp && (
-            <div className="mt-4">
-              <ReferralInput />
-            </div>
-          )}
 
           {message && (
             <div className={`p-3 rounded-lg font-press-start text-sm ${
