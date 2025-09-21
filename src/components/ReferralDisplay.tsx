@@ -63,7 +63,7 @@ export default function ReferralDisplay() {
         </div>
         {user.total_referrals >= 10 && (
           <div className="text-green-400 font-press-start text-xs text-center mt-2">
-            🎉 GANG LEADER! You've referred 10+ players! 🎉
+            🎉 GANG LEADER! You&apos;ve referred 10+ players! 🎉
           </div>
         )}
       </div>

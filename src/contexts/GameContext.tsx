@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { GameState, GameMessage, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, RUG_METER_ZONES, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES, calculateStageApeReward, calculateSlipCompensation, calculateConsecutiveSlipBonus, getMilestoneReward, APE_EARNINGS, APE_SPENDING, REFERRAL_REWARDS, generateReferralCode, validateReferralCode } from '@/types/game'
+import { GameState, GameMessage, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES, calculateStageApeReward, calculateSlipCompensation, calculateConsecutiveSlipBonus, getMilestoneReward, APE_EARNINGS, APE_SPENDING, REFERRAL_REWARDS, validateReferralCode } from '@/types/game'
 
 interface GameContextType {
   gameState: GameState
@@ -16,7 +16,7 @@ interface GameContextType {
   buyInsurance: () => void
   resetRugMeter: () => void
   resetSessionTime: () => void
-  useReferralCode: (code: string) => Promise<boolean>
+  applyReferralCode: (code: string) => Promise<boolean>
   copyReferralCode: () => void
 }
 
@@ -123,7 +123,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       
       // Check daily tap goals
       const dailyGoalReward = Object.entries(APE_EARNINGS.DAILY_GOALS)
-        .filter(([goal, reward]) => newDailyTaps >= parseInt(goal))
+        .filter(([goal]) => newDailyTaps >= parseInt(goal))
         .reduce((max, [, reward]) => Math.max(max, reward), 0)
       
       if (dailyGoalReward > 0 && newDailyApeEarned + dailyGoalReward <= APE_EARNINGS.DAILY_CAP) {
@@ -386,7 +386,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [gameState, dispatch] = useReducer(gameReducer, initialState)
   const [user, setUser] = React.useState<UserProfile | null>(null)
   const [gameMessages, setGameMessages] = React.useState<GameMessage[]>([])
-  const [slipMessages, setSlipMessages] = React.useState<SlipMessage[]>([])
+  const [slipMessages] = React.useState<SlipMessage[]>([])
   const [isOnline, setIsOnline] = React.useState(true)
 
   // Load game state from localStorage on mount
@@ -445,21 +445,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }, 3000)
   }, [])
 
-  const addSlipMessage = useCallback((message: string) => {
-    const id = Math.random().toString(36).substr(2, 9)
-    const slipMessage: SlipMessage = {
-      id,
-      message,
-      timestamp: Date.now()
-    }
-    
-    setSlipMessages(prev => [...prev, slipMessage])
-    
-    // Remove message after 3 seconds
-    setTimeout(() => {
-      setSlipMessages(prev => prev.filter(msg => msg.id !== id))
-    }, 3000)
-  }, [])
 
   const syncGameState = useCallback(async () => {
     if (!user || !isOnline) return
@@ -562,7 +547,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [gameState.sessionActiveTime, addGameMessage])
 
-  const handleTap = useCallback(() => {
+  const handleTap = useCallback(async () => {
     const now = Date.now()
     const timeSinceLastTap = now - gameState.lastTapTime
     
@@ -654,7 +639,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     addGameMessage("Session time reset! Starting fresh! ⏰", 'info')
   }, [addGameMessage])
 
-  const useReferralCode = useCallback(async (code: string): Promise<boolean> => {
+  const applyReferralCode = useCallback(async (code: string): Promise<boolean> => {
     if (!user || !isOnline) {
       addGameMessage("Must be online to use referral codes! 🌐", 'info')
       return false
@@ -675,7 +660,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // Find the referrer
       const { data: referrer, error: referrerError } = await supabase
         .from('profiles')
-        .select('id, username')
+        .select('id, username, ape_balance, total_referrals')
         .eq('referral_code', code)
         .single()
 
@@ -748,7 +733,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     buyInsurance,
     resetRugMeter,
     resetSessionTime,
-    useReferralCode,
+    applyReferralCode,
     copyReferralCode
   }
 

@@ -8,7 +8,7 @@ interface ReferralInputProps {
 }
 
 export default function ReferralInput({ onReferralUsed }: ReferralInputProps) {
-  const { useReferralCode } = useGame()
+  const { applyReferralCode } = useGame()
   const [referralCode, setReferralCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -18,7 +18,7 @@ export default function ReferralInput({ onReferralUsed }: ReferralInputProps) {
 
     setIsLoading(true)
     try {
-      const success = await useReferralCode(referralCode.trim().toUpperCase())
+      const success = await applyReferralCode(referralCode.trim().toUpperCase())
       if (success) {
         setReferralCode('')
       }

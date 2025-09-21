@@ -2,15 +2,12 @@
 
 import React, { useState, useEffect } from 'react'
 import { useGame } from '@/contexts/GameContext'
-import { STAGE_FORMULA, RUG_METER_ZONES } from '@/types/game'
 import ReferralDisplay from './ReferralDisplay'
 
 export default function RightSidebar() {
   const { gameState, resetSessionTime } = useGame()
   const [sessionTime, setSessionTime] = useState(0)
   
-  const tapsToNextStage = STAGE_FORMULA(gameState.currentStage)
-  const progressPercentage = (gameState.rugMeter / tapsToNextStage) * 100
 
   // Accurate session timer - only counts active play time
   useEffect(() => {
@@ -36,12 +33,6 @@ export default function RightSidebar() {
     return hours > 0 ? `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}` : `${minutes}:${secs.toString().padStart(2, '0')}`
   }
 
-  // Get Rug Meter color based on progress
-  const getRugMeterColor = (progress: number) => {
-    if (progress <= RUG_METER_ZONES.SAFE.max) return 'bg-green-500'
-    if (progress <= RUG_METER_ZONES.WARNING.max) return 'bg-yellow-500'
-    return 'bg-red-500'
-  }
 
   const stats = [
     {

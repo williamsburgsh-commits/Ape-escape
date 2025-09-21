@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react'
 import { useGame } from '@/contexts/GameContext'
-import { STAGE_FORMULA, RUG_METER_ZONES } from '@/types/game'
+import { STAGE_FORMULA } from '@/types/game'
 
 export default function GameArea() {
-  const { gameState, handleTap, gameMessages, slipMessages, buyInsurance, resetRugMeter } = useGame()
+  const { gameState, handleTap, gameMessages, buyInsurance, resetRugMeter } = useGame()
   const [isAnimating, setIsAnimating] = useState(false)
 
   const tapsToNextStage = STAGE_FORMULA(gameState.currentStage)
