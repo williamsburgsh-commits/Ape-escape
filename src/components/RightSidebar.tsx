@@ -5,19 +5,27 @@ import { useGame } from '@/contexts/GameContext'
 import { STAGE_FORMULA, RUG_METER_ZONES } from '@/types/game'
 
 export default function RightSidebar() {
-  const { gameState } = useGame()
+  const { gameState, resetSessionTime } = useGame()
   const [sessionTime, setSessionTime] = useState(0)
   
   const tapsToNextStage = STAGE_FORMULA(gameState.currentStage)
   const progressPercentage = (gameState.rugMeter / tapsToNextStage) * 100
 
-  // Session timer
+  // Accurate session timer - only counts active play time
   useEffect(() => {
     const interval = setInterval(() => {
-      setSessionTime(Math.floor((Date.now() - gameState.sessionStartTime) / 1000))
+      if (gameState.isSessionActive) {
+        const now = Date.now()
+        const timeSinceLastActivity = now - gameState.lastActivityTime
+        const totalActiveTime = gameState.sessionActiveTime + timeSinceLastActivity
+        setSessionTime(Math.floor(totalActiveTime / 1000))
+      } else {
+        // Session is paused, use stored active time
+        setSessionTime(Math.floor(gameState.sessionActiveTime / 1000))
+      }
     }, 1000)
     return () => clearInterval(interval)
-  }, [gameState.sessionStartTime])
+  }, [gameState.isSessionActive, gameState.sessionActiveTime, gameState.lastActivityTime])
 
   // Format session time
   const formatTime = (seconds: number) => {
@@ -120,6 +128,14 @@ export default function RightSidebar() {
               </div>
             ))}
           </div>
+          
+          {/* Reset Session Time Button */}
+          <button
+            onClick={resetSessionTime}
+            className="w-full mt-3 bg-red-600 hover:bg-red-700 text-white font-press-start text-xs px-3 py-2 rounded transition-colors"
+          >
+            Reset Session Time
+          </button>
         </div>
       </div>
     </aside>

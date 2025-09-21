@@ -5,9 +5,8 @@ import { useGame } from '@/contexts/GameContext'
 import { STAGE_FORMULA, RUG_METER_ZONES } from '@/types/game'
 
 export default function GameArea() {
-  const { gameState, handleTap, slipMessages, buyInsurance, resetRugMeter } = useGame()
+  const { gameState, handleTap, gameMessages, slipMessages, buyInsurance, resetRugMeter } = useGame()
   const [isAnimating, setIsAnimating] = useState(false)
-  const [showStageUp, setShowStageUp] = useState(false)
 
   const tapsToNextStage = STAGE_FORMULA(gameState.currentStage)
   const progressPercentage = (gameState.rugMeter / tapsToNextStage) * 100
@@ -23,27 +22,11 @@ export default function GameArea() {
   const handleApeClick = () => {
     setIsAnimating(true)
     handleTap()
-    
-    // Check if stage increased
-    const newTapsToNextStage = STAGE_FORMULA(gameState.currentStage)
-    if (gameState.rugMeter >= newTapsToNextStage) {
-      setShowStageUp(true)
-      setTimeout(() => setShowStageUp(false), 2000)
-    }
-    
     setTimeout(() => setIsAnimating(false), 150)
   }
 
   return (
     <div className="flex-1 flex flex-col items-center justify-start pt-16 p-8 relative">
-      {/* Stage Up Animation */}
-      {showStageUp && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
-          <div className="bg-yellow-400 text-black font-press-start text-2xl px-6 py-3 rounded-lg animate-bounce">
-            STAGE UP! 🎉
-          </div>
-        </div>
-      )}
 
       {/* Main Game Area - Higher up with compact hierarchy */}
       <div className="text-center space-y-5">
@@ -135,16 +118,40 @@ export default function GameArea() {
         </div>
       </div>
 
-      {/* Slip Messages */}
-      <div className="absolute bottom-4 right-4 space-y-2">
-        {slipMessages.map((message) => (
-          <div
-            key={message.id}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg font-press-start text-sm animate-pulse"
-          >
-            {message.message}
-          </div>
-        ))}
+      {/* Game Messages - Fixed positioning in lower-right corner */}
+      <div className="fixed bottom-5 right-5 space-y-2 z-50 max-w-sm">
+        {gameMessages.map((message) => {
+          let bgColor = 'bg-gray-600'
+          let textColor = 'text-white'
+          
+          switch (message.type) {
+            case 'anti-cheat':
+              bgColor = 'bg-red-600'
+              break
+            case 'slip':
+              bgColor = 'bg-red-500'
+              break
+            case 'stage-up':
+              bgColor = 'bg-green-500'
+              textColor = 'text-black'
+              break
+            case 'info':
+              bgColor = 'bg-blue-600'
+              break
+          }
+          
+          return (
+            <div
+              key={message.id}
+              className={`${bgColor} ${textColor} px-4 py-2 rounded-lg font-press-start text-sm shadow-lg transform transition-all duration-300 ease-in-out animate-fade-in`}
+              style={{
+                animation: 'slideInFromRight 0.3s ease-out'
+              }}
+            >
+              {message.message}
+            </div>
+          )
+        })}
       </div>
 
       {/* Offline Indicator */}

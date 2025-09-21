@@ -2,11 +2,12 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { GameState, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, RUG_METER_ZONES, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES, calculateStageApeReward, calculateSlipCompensation, calculateConsecutiveSlipBonus, getMilestoneReward, APE_EARNINGS, APE_SPENDING } from '@/types/game'
+import { GameState, GameMessage, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, RUG_METER_ZONES, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES, calculateStageApeReward, calculateSlipCompensation, calculateConsecutiveSlipBonus, getMilestoneReward, APE_EARNINGS, APE_SPENDING } from '@/types/game'
 
 interface GameContextType {
   gameState: GameState
   user: UserProfile | null
+  gameMessages: GameMessage[]
   slipMessages: SlipMessage[]
   isOnline: boolean
   handleTap: () => void
@@ -14,6 +15,7 @@ interface GameContextType {
   setUser: (user: UserProfile | null) => void
   buyInsurance: () => void
   resetRugMeter: () => void
+  resetSessionTime: () => void
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -28,6 +30,8 @@ type GameAction =
   | { type: 'SET_USER'; payload: UserProfile | null }
   | { type: 'SET_OFFLINE'; payload: boolean }
   | { type: 'SYNC_STATE'; payload: Partial<GameState> }
+  | { type: 'ADD_GAME_MESSAGE'; payload: GameMessage }
+  | { type: 'REMOVE_GAME_MESSAGE'; payload: string }
   | { type: 'ADD_SLIP_MESSAGE'; payload: SlipMessage }
   | { type: 'REMOVE_SLIP_MESSAGE'; payload: string }
   | { type: 'ADD_APE'; payload: number }
@@ -36,6 +40,10 @@ type GameAction =
   | { type: 'RESET_RUG_METER' }
   | { type: 'AWARD_TRAGIC_HERO' }
   | { type: 'DAILY_LOGIN' }
+  | { type: 'PAUSE_SESSION' }
+  | { type: 'RESUME_SESSION' }
+  | { type: 'UPDATE_ACTIVE_TIME' }
+  | { type: 'RESET_SESSION_TIME' }
 
 const initialState: GameState = {
   currentStage: 1,
@@ -54,6 +62,9 @@ const initialState: GameState = {
   sessionTaps: 0,
   sessionSlips: 0,
   sessionStartTime: Date.now(),
+  sessionActiveTime: 0,
+  lastActivityTime: Date.now(),
+  isSessionActive: true,
   // APE Economy
   apeBalance: 0,
   consecutiveSlips: 0,
@@ -228,7 +239,47 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         sessionTaps: 0,
         sessionSlips: 0,
-        sessionStartTime: Date.now()
+        sessionStartTime: Date.now(),
+        sessionActiveTime: 0,
+        lastActivityTime: Date.now(),
+        isSessionActive: true
+      }
+    }
+    case 'PAUSE_SESSION': {
+      const now = Date.now()
+      const timeSinceLastActivity = now - state.lastActivityTime
+      const newActiveTime = state.sessionActiveTime + timeSinceLastActivity
+      
+      return {
+        ...state,
+        sessionActiveTime: newActiveTime,
+        isSessionActive: false
+      }
+    }
+    case 'RESUME_SESSION': {
+      return {
+        ...state,
+        lastActivityTime: Date.now(),
+        isSessionActive: true
+      }
+    }
+    case 'UPDATE_ACTIVE_TIME': {
+      const now = Date.now()
+      const timeSinceLastActivity = now - state.lastActivityTime
+      const newActiveTime = state.sessionActiveTime + timeSinceLastActivity
+      
+      return {
+        ...state,
+        sessionActiveTime: newActiveTime,
+        lastActivityTime: now
+      }
+    }
+    case 'RESET_SESSION_TIME': {
+      return {
+        ...state,
+        sessionActiveTime: 0,
+        lastActivityTime: Date.now(),
+        isSessionActive: true
       }
     }
     case 'SET_USER':
@@ -304,6 +355,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
       return state
     }
+    case 'ADD_GAME_MESSAGE':
+    case 'REMOVE_GAME_MESSAGE':
+    case 'ADD_SLIP_MESSAGE':
+    case 'REMOVE_SLIP_MESSAGE':
+      // These are handled in the component state, not in the reducer
+      return state
     default:
       return state
   }
@@ -312,6 +369,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [gameState, dispatch] = useReducer(gameReducer, initialState)
   const [user, setUser] = React.useState<UserProfile | null>(null)
+  const [gameMessages, setGameMessages] = React.useState<GameMessage[]>([])
   const [slipMessages, setSlipMessages] = React.useState<SlipMessage[]>([])
   const [isOnline, setIsOnline] = React.useState(true)
 
@@ -352,6 +410,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
+  }, [])
+
+  const addGameMessage = useCallback((message: string, type: 'anti-cheat' | 'slip' | 'stage-up' | 'info') => {
+    const id = Math.random().toString(36).substr(2, 9)
+    const gameMessage: GameMessage = {
+      id,
+      message,
+      timestamp: Date.now(),
+      type
+    }
+    
+    setGameMessages(prev => [...prev, gameMessage])
+    
+    // Remove message after 3 seconds
+    setTimeout(() => {
+      setGameMessages(prev => prev.filter(msg => msg.id !== id))
+    }, 3000)
   }, [])
 
   const addSlipMessage = useCallback((message: string) => {
@@ -418,19 +493,72 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isOnline, user, syncGameState])
 
+  // Session management - pause when tab is hidden or offline
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        dispatch({ type: 'PAUSE_SESSION' })
+      } else {
+        dispatch({ type: 'RESUME_SESSION' })
+      }
+    }
+
+    const handleOffline = () => {
+      dispatch({ type: 'PAUSE_SESSION' })
+    }
+
+    const handleOnline = () => {
+      dispatch({ type: 'RESUME_SESSION' })
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('offline', handleOffline)
+    window.addEventListener('online', handleOnline)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('online', handleOnline)
+    }
+  }, [])
+
+  // Update active time every 5 seconds when session is active
+  useEffect(() => {
+    if (!gameState.isSessionActive) return
+
+    const interval = setInterval(() => {
+      dispatch({ type: 'UPDATE_ACTIVE_TIME' })
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [gameState.isSessionActive])
+
+  // Wellness checks - show break reminders
+  useEffect(() => {
+    const activeTimeMinutes = Math.floor(gameState.sessionActiveTime / 60000)
+    
+    if (activeTimeMinutes === 30) {
+      addGameMessage("⏰ 30 minutes played! Consider taking a short break! 🧘‍♂️", 'info')
+    } else if (activeTimeMinutes === 45) {
+      addGameMessage("⚠️ 45 minutes played! Time for a longer break! 🚶‍♂️", 'info')
+    } else if (activeTimeMinutes === 60) {
+      addGameMessage("🛑 1 hour played! Please take a mandatory break! Your health matters! 💚", 'info')
+    }
+  }, [gameState.sessionActiveTime, addGameMessage])
+
   const handleTap = useCallback(() => {
     const now = Date.now()
     const timeSinceLastTap = now - gameState.lastTapTime
     
     // Anti-cheat: Check tap rate
     if (timeSinceLastTap < MIN_TAP_INTERVAL) {
-      addSlipMessage("Slow down there, speed demon! 🏃‍♂️")
+      addGameMessage("Slow down there, speed demon! 🏃‍♂️", 'anti-cheat')
       return
     }
     
     const tapsPerSecond = timeSinceLastTap < 1000 ? gameState.tapCount + 1 : 1
     if (tapsPerSecond > MAX_TAPS_PER_SECOND) {
-      addSlipMessage("Slow down there, speed demon! 🏃‍♂️")
+      addGameMessage("Slow down there, speed demon! 🏃‍♂️", 'anti-cheat')
       return
     }
 
@@ -438,7 +566,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (Math.random() < gameState.slipChance) {
       dispatch({ type: 'SLIP' })
       const randomMessage = SLIP_MESSAGES[Math.floor(Math.random() * SLIP_MESSAGES.length)]
-      addSlipMessage(randomMessage)
+      addGameMessage(randomMessage, 'slip')
       return
     }
 
@@ -449,6 +577,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     // Check if stage increased
     if (gameState.currentStage > oldStage) {
       dispatch({ type: 'STAGE_UP' })
+      addGameMessage(`Stage Up! Evolved to Stage ${gameState.currentStage}! 🎉`, 'stage-up')
     }
 
     // Log suspicious activity
@@ -461,40 +590,47 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (isOnline && user) {
       syncGameState()
     }
-  }, [gameState, user, isOnline, addSlipMessage, syncGameState])
+  }, [gameState, user, isOnline, addGameMessage, syncGameState])
 
   const buyInsurance = useCallback(() => {
     if (gameState.apeBalance >= APE_SPENDING.SLIP_INSURANCE && !gameState.insuranceActive) {
       dispatch({ type: 'BUY_INSURANCE' })
-      addSlipMessage("Insurance activated! Protected for 50 taps! 🛡️")
+      addGameMessage("Insurance activated! Protected for 50 taps! 🛡️", 'info')
     } else if (gameState.insuranceActive) {
-      addSlipMessage("Insurance already active! 🛡️")
+      addGameMessage("Insurance already active! 🛡️", 'info')
     } else {
-      addSlipMessage("Not enough APE! Need 100 APE for insurance! 💰")
+      addGameMessage("Not enough APE! Need 100 APE for insurance! 💰", 'info')
     }
-  }, [gameState.apeBalance, gameState.insuranceActive, addSlipMessage])
+  }, [gameState.apeBalance, gameState.insuranceActive, addGameMessage])
 
   const resetRugMeter = useCallback(() => {
     if (gameState.apeBalance >= APE_SPENDING.RESET_RUG_METER && gameState.slipChance > 0.01) {
       dispatch({ type: 'RESET_RUG_METER' })
-      addSlipMessage("Rug meter reset! Risk back to 1%! 🔄")
+      addGameMessage("Rug meter reset! Risk back to 1%! 🔄", 'info')
     } else if (gameState.slipChance <= 0.01) {
-      addSlipMessage("Rug meter already at minimum risk! ✅")
+      addGameMessage("Rug meter already at minimum risk! ✅", 'info')
     } else {
-      addSlipMessage("Not enough APE! Need 50 APE to reset risk! 💰")
+      addGameMessage("Not enough APE! Need 50 APE to reset risk! 💰", 'info')
     }
-  }, [gameState.apeBalance, gameState.slipChance, addSlipMessage])
+  }, [gameState.apeBalance, gameState.slipChance, addGameMessage])
+
+  const resetSessionTime = useCallback(() => {
+    dispatch({ type: 'RESET_SESSION_TIME' })
+    addGameMessage("Session time reset! Starting fresh! ⏰", 'info')
+  }, [addGameMessage])
 
   const contextValue: GameContextType = {
     gameState,
     user,
+    gameMessages,
     slipMessages,
     isOnline,
     handleTap,
     syncGameState,
     setUser,
     buyInsurance,
-    resetRugMeter
+    resetRugMeter,
+    resetSessionTime
   }
 
   return (

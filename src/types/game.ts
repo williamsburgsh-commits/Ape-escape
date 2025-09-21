@@ -15,6 +15,9 @@ export interface GameState {
   sessionTaps: number
   sessionSlips: number
   sessionStartTime: number
+  sessionActiveTime: number // Total active play time in milliseconds
+  lastActivityTime: number // Last time user was active
+  isSessionActive: boolean // Whether session is currently active
   // APE Economy
   apeBalance: number
   consecutiveSlips: number
@@ -24,6 +27,13 @@ export interface GameState {
   tragicHeroBadges: number
   insuranceActive: boolean
   insuranceTapsLeft: number
+}
+
+export interface GameMessage {
+  id: string
+  message: string
+  timestamp: number
+  type: 'anti-cheat' | 'slip' | 'stage-up' | 'info'
 }
 
 export interface SlipMessage {
