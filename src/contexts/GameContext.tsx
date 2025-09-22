@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { GameState, GameMessage, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES, calculateStageApeReward, calculateSlipCompensation, calculateConsecutiveSlipBonus, getMilestoneReward, APE_EARNINGS, APE_SPENDING, REFERRAL_REWARDS, validateReferralCode } from '@/types/game'
+import { GameState, GameMessage, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES, calculateStageApeReward, calculateSlipCompensation, calculateConsecutiveSlipBonus, getMilestoneReward, APE_EARNINGS, APE_SPENDING, REFERRAL_REWARDS, validateReferralCode, SharePlatform, ShareLog, SHARE_REWARDS, SHARE_LIMITS } from '@/types/game'
 
 interface GameContextType {
   gameState: GameState
@@ -18,6 +18,10 @@ interface GameContextType {
   resetSessionTime: () => void
   applyReferralCode: (code: string) => Promise<boolean>
   copyReferralCode: () => void
+  // Social sharing functions
+  shareToPlatform: (platform: SharePlatform, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
+  verifyShare: (url: string) => Promise<void>
+  getShareStats: () => Promise<{ dailyShares: number; cooldowns: Record<string, boolean> }>
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -568,6 +572,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SLIP' })
       const randomMessage = SLIP_MESSAGES[Math.floor(Math.random() * SLIP_MESSAGES.length)]
       addGameMessage(randomMessage, 'slip')
+      
+      // Trigger share modal for slip
+      setTimeout(() => {
+        addGameMessage("Share for Revenge Mode! Get APE rewards! 🦍", 'info')
+      }, 2000)
+      
       return
     }
 
@@ -579,6 +589,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (gameState.currentStage > oldStage) {
       dispatch({ type: 'STAGE_UP' })
       addGameMessage(`Stage Up! Evolved to Stage ${gameState.currentStage}! 🎉`, 'stage-up')
+      
+      // Trigger share modal for milestone
+      setTimeout(() => {
+        addGameMessage(`Share your Stage ${gameState.currentStage} achievement! Get APE rewards! 🎉`, 'info')
+      }, 2000)
       
       // Check for stage 10 referral bonus
       if (gameState.currentStage === 10 && user?.referred_by) {
@@ -721,6 +736,85 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     addGameMessage(`Referral code copied! Share ${user.referral_code} with friends! 📋`, 'info')
   }, [user, addGameMessage])
 
+  // Social sharing functions
+  const shareToPlatform = useCallback((platform: SharePlatform, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
+    // This will be handled by the parent component that opens the verification modal
+    console.log('Share to platform:', platform.id, 'Type:', shareType, 'Stage:', milestoneStage)
+  }, [])
+
+  const verifyShare = useCallback(async (url: string) => {
+    if (!user || !isOnline) {
+      addGameMessage("Must be online to verify shares! 🌐", 'info')
+      return
+    }
+
+    try {
+      // Call the server-side function to verify and award APE
+      const { data, error } = await supabase.rpc('award_share_ape', {
+        p_user_id: user.id,
+        p_platform: 'twitter', // This should be passed from the modal
+        p_url: url
+      })
+
+      if (error) {
+        console.error('Error verifying share:', error)
+        throw new Error(error.message)
+      }
+
+      const apeAwarded = data || 0
+      addGameMessage(`Share verified! +${apeAwarded} APE earned! 🎉`, 'stage-up')
+      
+      // Update local APE balance
+      dispatch({ type: 'ADD_APE', payload: apeAwarded })
+      
+      // Sync with server
+      await syncGameState()
+
+    } catch (error) {
+      console.error('Failed to verify share:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to verify share'
+      addGameMessage(`Verification failed: ${errorMessage} ⚠️`, 'info')
+      throw error
+    }
+  }, [user, isOnline, addGameMessage, syncGameState])
+
+  const getShareStats = useCallback(async () => {
+    if (!user || !isOnline) {
+      return { dailyShares: 0, cooldowns: {} }
+    }
+
+    try {
+      // Get today's share count
+      const { data: dailyShares, error: dailyError } = await supabase
+        .from('shares_log')
+        .select('platform, created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', new Date().toISOString().split('T')[0])
+
+      if (dailyError) throw dailyError
+
+      const dailyCount = dailyShares?.length || 0
+      
+      // Check cooldowns for each platform
+      const cooldowns: Record<string, boolean> = {}
+      const platforms = ['tiktok', 'twitter', 'instagram']
+      
+      for (const platform of platforms) {
+        const lastShare = dailyShares?.find(share => 
+          share.platform === platform && 
+          new Date(share.created_at) > new Date(Date.now() - SHARE_LIMITS.COOLDOWN_HOURS * 60 * 60 * 1000)
+        )
+        cooldowns[platform] = !!lastShare
+      }
+
+      return { dailyShares: dailyCount, cooldowns }
+
+    } catch (error) {
+      console.error('Failed to get share stats:', error)
+      return { dailyShares: 0, cooldowns: {} }
+    }
+  }, [user, isOnline])
+
 
   const contextValue: GameContextType = {
     gameState,
@@ -735,7 +829,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     resetRugMeter,
     resetSessionTime,
     applyReferralCode,
-    copyReferralCode
+    copyReferralCode,
+    shareToPlatform,
+    verifyShare,
+    getShareStats
   }
 
   return (

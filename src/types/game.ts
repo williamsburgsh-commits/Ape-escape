@@ -186,3 +186,60 @@ export const validateReferralCode = (code: string): boolean => {
   return /^APE[A-Z0-9]{5}$/.test(code)
 }
 
+// Social Sharing Types
+export interface ShareLog {
+  id: string
+  user_id: string
+  platform: 'tiktok' | 'twitter' | 'instagram'
+  url: string
+  ape_awarded: number
+  created_at: string
+}
+
+export interface SharePlatform {
+  id: 'tiktok' | 'twitter' | 'instagram'
+  name: string
+  multiplier: number
+  baseReward: number
+  icon: string
+  color: string
+}
+
+export const SHARE_PLATFORMS: SharePlatform[] = [
+  {
+    id: 'tiktok',
+    name: 'TikTok',
+    multiplier: 3,
+    baseReward: 15,
+    icon: '🎵',
+    color: 'bg-black text-white'
+  },
+  {
+    id: 'twitter',
+    name: 'Twitter',
+    multiplier: 2,
+    baseReward: 15,
+    icon: '🐦',
+    color: 'bg-blue-500 text-white'
+  },
+  {
+    id: 'instagram',
+    name: 'Instagram',
+    multiplier: 1.5,
+    baseReward: 15,
+    icon: '📷',
+    color: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+  }
+]
+
+export const SHARE_REWARDS = {
+  TIKTOK: 45,    // 3x = 45 APE
+  TWITTER: 30,   // 2x = 30 APE
+  INSTAGRAM: 22  // 1.5x = 22 APE
+} as const
+
+export const SHARE_LIMITS = {
+  DAILY_MAX: 3,
+  COOLDOWN_HOURS: 8
+} as const
+
