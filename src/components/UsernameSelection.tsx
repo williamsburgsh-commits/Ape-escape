@@ -2,14 +2,12 @@
 
 import React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useGame } from '@/contexts/GameContext'
 
 export default function UsernameSelection() {
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const { updateProfile } = useAuth()
-  const { setUser } = useGame()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
