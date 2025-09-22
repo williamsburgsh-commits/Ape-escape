@@ -51,6 +51,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user ID:', userId)
+      
+      // Check current auth state
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      console.log('Current authenticated user:', currentUser?.id)
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -61,6 +67,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // If profile doesn't exist, create one
         if (error.code === 'PGRST116') {
           console.log('Profile not found, creating new profile for user:', userId)
+          
+          // Wait a moment to ensure user is fully authenticated
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          
+          // Double-check auth state before creating profile
+          const { data: { user: authUser } } = await supabase.auth.getUser()
+          console.log('Auth user before profile creation:', authUser?.id)
+          
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert({
@@ -78,19 +92,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               daily_taps: 0,
               tragic_hero_badges: 0,
               insurance_active: false,
-              insurance_taps_left: 0
+              insurance_taps_left: 0,
+              referral_code: null, // Let the trigger generate this
+              referred_by: null,
+              total_referrals: 0
             })
             .select()
             .single()
 
           if (createError) {
             console.error('Error creating profile:', createError)
+            console.error('Error details:', JSON.stringify(createError, null, 2))
             throw createError
           }
           console.log('Profile created successfully:', newProfile)
           setProfile(newProfile)
         } else {
           console.error('Error fetching profile:', error)
+          console.error('Error details:', JSON.stringify(error, null, 2))
           throw error
         }
       } else {
@@ -99,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error)
+      console.error('Error details:', JSON.stringify(error, null, 2))
       // Don't set loading to false here, let the component handle the error state
     } finally {
       setLoading(false)
