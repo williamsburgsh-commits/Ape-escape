@@ -19,6 +19,9 @@ interface GameContextType {
   applyReferralCode: (code: string) => Promise<boolean>
   copyReferralCode: () => void
   // Social sharing functions
+  shareTrigger: { type: 'slip' | 'milestone' | 'manual'; milestoneStage?: number } | null
+  triggerShare: (type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
+  clearShareTrigger: () => void
   shareToPlatform: (platform: SharePlatform, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
   verifyShare: (url: string) => Promise<void>
   getShareStats: () => Promise<{ dailyShares: number; cooldowns: Record<string, boolean> }>
@@ -392,6 +395,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [gameMessages, setGameMessages] = React.useState<GameMessage[]>([])
   const [slipMessages] = React.useState<SlipMessage[]>([])
   const [isOnline, setIsOnline] = React.useState(true)
+  const [shareTrigger, setShareTrigger] = React.useState<{ type: 'slip' | 'milestone' | 'manual'; milestoneStage?: number } | null>(null)
 
   // Load game state from localStorage on mount
   useEffect(() => {
@@ -575,7 +579,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       
       // Trigger share modal for slip
       setTimeout(() => {
-        addGameMessage("Share for Revenge Mode! Get APE rewards! 🦍", 'info')
+        triggerShare('slip')
       }, 2000)
       
       return
@@ -592,7 +596,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       
       // Trigger share modal for milestone
       setTimeout(() => {
-        addGameMessage(`Share your Stage ${gameState.currentStage} achievement! Get APE rewards! 🎉`, 'info')
+        triggerShare('milestone', gameState.currentStage)
       }, 2000)
       
       // Check for stage 10 referral bonus
@@ -736,11 +740,63 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     addGameMessage(`Referral code copied! Share ${user.referral_code} with friends! 📋`, 'info')
   }, [user, addGameMessage])
 
+  // Share trigger functions
+  const triggerShare = useCallback((type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
+    setShareTrigger({ type, milestoneStage })
+  }, [])
+
+  const clearShareTrigger = useCallback(() => {
+    setShareTrigger(null)
+  }, [])
+
+  // Funny share messages
+  const getShareMessage = useCallback((type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
+    const referralCode = user?.referral_code || 'APE123'
+    
+    if (type === 'slip') {
+      const slipMessages = [
+        `Just got RUGGED in APE ESCAPE! 😅 The ape forgot how to ape! 🦍 Play now: ape-escape.com?ref=${referralCode} #apeescape`,
+        `Whoops! Stepped on a banana peel in APE ESCAPE! 🍌 Time for revenge mode! 🦍 Join me: ape-escape.com?ref=${referralCode} #apeescape`,
+        `Gravity wins this round in APE ESCAPE! 😂 The climb continues! 🦍 Play: ape-escape.com?ref=${referralCode} #apeescape`,
+        `Just slipped and fell in APE ESCAPE! 🤪 But I'm getting back up! 🦍 Try it: ape-escape.com?ref=${referralCode} #apeescape`,
+        `RUGGED again in APE ESCAPE! 😭 This game is brutal! 🦍 Can you do better? ape-escape.com?ref=${referralCode} #apeescape`
+      ]
+      return slipMessages[Math.floor(Math.random() * slipMessages.length)]
+    } else if (type === 'milestone' && milestoneStage) {
+      const milestoneMessages = [
+        `Reached Stage ${milestoneStage} in APE ESCAPE! 🎉 The evolution continues! 🦍 Join the climb: ape-escape.com?ref=${referralCode} #apeescape`,
+        `Stage ${milestoneStage} achieved in APE ESCAPE! 🚀 Getting stronger! 🦍 Play now: ape-escape.com?ref=${referralCode} #apeescape`,
+        `Evolved to Stage ${milestoneStage} in APE ESCAPE! 💪 The ape is unstoppable! 🦍 Try it: ape-escape.com?ref=${referralCode} #apeescape`,
+        `Stage ${milestoneStage} unlocked in APE ESCAPE! 🔥 The journey continues! 🦍 Join me: ape-escape.com?ref=${referralCode} #apeescape`,
+        `Reached Stage ${milestoneStage} in APE ESCAPE! 🎯 The climb gets real! 🦍 Play: ape-escape.com?ref=${referralCode} #apeescape`
+      ]
+      return milestoneMessages[Math.floor(Math.random() * milestoneMessages.length)]
+    } else {
+      const generalMessages = [
+        `Playing APE ESCAPE - the ultimate tap-to-evolve game! 🦍 Can you reach the top? ape-escape.com?ref=${referralCode} #apeescape`,
+        `APE ESCAPE is addictive! 🦍 Tap, evolve, survive! Join me: ape-escape.com?ref=${referralCode} #apeescape`,
+        `The most intense tap game ever - APE ESCAPE! 🦍 Will you survive? Play: ape-escape.com?ref=${referralCode} #apeescape`,
+        `APE ESCAPE: Where every tap matters! 🦍 The climb is real! Try it: ape-escape.com?ref=${referralCode} #apeescape`,
+        `Join me in APE ESCAPE! 🦍 The ultimate evolution challenge! Play: ape-escape.com?ref=${referralCode} #apeescape`
+      ]
+      return generalMessages[Math.floor(Math.random() * generalMessages.length)]
+    }
+  }, [user?.referral_code])
+
   // Social sharing functions
   const shareToPlatform = useCallback((platform: SharePlatform, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
-    // This will be handled by the parent component that opens the verification modal
-    console.log('Share to platform:', platform.id, 'Type:', shareType, 'Stage:', milestoneStage)
-  }, [])
+    const shareText = getShareMessage(shareType, milestoneStage)
+    
+    if (platform.id === 'twitter') {
+      // Open Twitter with pre-filled tweet
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`
+      window.open(twitterUrl, '_blank')
+    } else {
+      // Copy to clipboard for TikTok/Instagram
+      navigator.clipboard.writeText(shareText)
+      addGameMessage(`Caption copied for ${platform.name}! Paste it in your post. 📋`, 'info')
+    }
+  }, [getShareMessage, addGameMessage])
 
   const verifyShare = useCallback(async (url: string) => {
     if (!user || !isOnline) {
@@ -830,6 +886,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     resetSessionTime,
     applyReferralCode,
     copyReferralCode,
+    shareTrigger,
+    triggerShare,
+    clearShareTrigger,
     shareToPlatform,
     verifyShare,
     getShareStats

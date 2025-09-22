@@ -9,12 +9,19 @@ import { SharePlatform } from '@/types/game'
 
 export default function Header() {
   const { user, profile, signOut } = useAuth()
-  const { gameState, isOnline, verifyShare } = useGame()
+  const { gameState, isOnline, verifyShare, shareTrigger, clearShareTrigger, shareToPlatform } = useGame()
   const [showShareModal, setShowShareModal] = useState(false)
   const [showVerificationModal, setShowVerificationModal] = useState(false)
   const [selectedPlatform, setSelectedPlatform] = useState<SharePlatform | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
   const [verificationError, setVerificationError] = useState<string | null>(null)
+
+  // Listen for share triggers from GameContext
+  React.useEffect(() => {
+    if (shareTrigger) {
+      setShowShareModal(true)
+    }
+  }, [shareTrigger])
 
   return (
     <header className="bg-black/20 backdrop-blur-sm border-b-2 border-yellow-400 px-6 py-4">
@@ -83,13 +90,21 @@ export default function Header() {
       {/* Share Modal */}
       <ShareModal
         isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
+        onClose={() => {
+          setShowShareModal(false)
+          clearShareTrigger()
+        }}
         onSelectPlatform={(platform) => {
           setSelectedPlatform(platform)
           setShowShareModal(false)
           setShowVerificationModal(true)
+          // Use the shareToPlatform function with the current share trigger
+          if (shareTrigger) {
+            shareToPlatform(platform, shareTrigger.type, shareTrigger.milestoneStage)
+          }
         }}
-        shareType="manual"
+        shareType={shareTrigger?.type || 'manual'}
+        milestoneStage={shareTrigger?.milestoneStage}
       />
 
       {/* Verification Modal */}
