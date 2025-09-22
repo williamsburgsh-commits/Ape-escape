@@ -55,39 +55,49 @@ export default function ShareModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-black/90 backdrop-blur-sm border-2 border-yellow-400 rounded-lg p-6 w-full max-w-md mx-4">
-        <div className="text-center mb-6">
-          <span className="text-4xl mb-2 block">🦍</span>
-          <h2 className="text-2xl font-bold text-yellow-400 font-press-start mb-2">
+    <div className="fixed bottom-4 right-4 z-50 w-80 h-64">
+      <div className="relative bg-gradient-to-br from-purple-600 to-indigo-500 border-2 border-yellow-400 rounded-lg shadow-2xl h-full flex flex-col">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 w-6 h-6 bg-red-600 hover:bg-red-700 text-white font-press-start text-xs rounded-full flex items-center justify-center z-10"
+        >
+          ×
+        </button>
+
+        {/* Header */}
+        <div className="text-center p-4 pt-6">
+          <span className="text-2xl mb-1 block">🦍</span>
+          <h2 className="text-lg font-bold text-yellow-400 font-press-start mb-1" style={{ textShadow: '2px 2px 0px #000' }}>
             {getTitle()}
           </h2>
-          <p className="text-yellow-300 font-press-start text-sm">
+          <p className="text-yellow-300 font-press-start text-xs" style={{ textShadow: '1px 1px 0px #000' }}>
             {getSubtitle()}
           </p>
         </div>
 
-        <div className="space-y-3 mb-6">
+        {/* Platform buttons */}
+        <div className="flex-1 px-4 space-y-2 overflow-y-auto">
           {SHARE_PLATFORMS.map((platform) => (
             <button
               key={platform.id}
               onClick={() => handlePlatformSelect(platform)}
-              className={`w-full p-4 rounded-lg border-2 border-yellow-400 hover:border-yellow-300 transition-colors ${platform.color}`}
+              className={`w-full p-2 rounded border-2 border-yellow-400 hover:border-yellow-300 transition-colors ${platform.color} text-xs`}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <span className="text-2xl">{platform.icon}</span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg">{platform.icon}</span>
                   <div className="text-left">
-                    <div className="font-press-start font-bold">
+                    <div className="font-press-start font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
                       {platform.name}
                     </div>
-                    <div className="text-xs opacity-90">
+                    <div className="text-xs opacity-90" style={{ textShadow: '1px 1px 0px #000' }}>
                       {platform.multiplier}x = {platform.baseReward * platform.multiplier} APE
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs opacity-90">
+                  <div className="text-xs opacity-90" style={{ textShadow: '1px 1px 0px #000' }}>
                     {platform.id === 'twitter' ? 'Auto-open' : 'Copy text'}
                   </div>
                 </div>
@@ -96,18 +106,14 @@ export default function ShareModal({
           ))}
         </div>
 
-        <div className="text-center text-yellow-300 font-press-start text-xs mb-4">
-          <p>Max 3 shares per day • 8hr cooldown per platform</p>
-          <p>You&apos;ll need to verify your post to get APE rewards!</p>
-        </div>
-
-        <div className="flex space-x-3">
-          <button
-            onClick={onClose}
-            className="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-press-start py-2 rounded-lg transition-colors"
-          >
-            Cancel
-          </button>
+        {/* Footer info */}
+        <div className="p-3 text-center">
+          <div className="text-yellow-300 font-press-start text-xs mb-1" style={{ textShadow: '1px 1px 0px #000' }}>
+            Max 3 shares per day • 8hr cooldown
+          </div>
+          <div className="text-yellow-300 font-press-start text-xs" style={{ textShadow: '1px 1px 0px #000' }}>
+            Verify your post to get APE rewards!
+          </div>
         </div>
       </div>
     </div>
