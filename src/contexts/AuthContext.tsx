@@ -60,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         // If profile doesn't exist, create one
         if (error.code === 'PGRST116') {
+          console.log('Profile not found, creating new profile for user:', userId)
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert({
@@ -82,16 +83,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .select()
             .single()
 
-          if (createError) throw createError
+          if (createError) {
+            console.error('Error creating profile:', createError)
+            throw createError
+          }
+          console.log('Profile created successfully:', newProfile)
           setProfile(newProfile)
         } else {
+          console.error('Error fetching profile:', error)
           throw error
         }
       } else {
+        console.log('Profile found:', data)
         setProfile(data)
       }
     } catch (error) {
-      console.error('Error fetching profile:', error)
+      console.error('Error in fetchProfile:', error)
+      // Don't set loading to false here, let the component handle the error state
     } finally {
       setLoading(false)
     }

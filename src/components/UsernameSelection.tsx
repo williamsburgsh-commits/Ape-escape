@@ -35,42 +35,26 @@ export default function UsernameSelection() {
     }
 
     try {
+      console.log('Attempting to update profile with username:', username.trim())
       const { error } = await updateProfile({ username: username.trim() })
       
       if (error) {
+        console.error('Error updating profile:', error)
         if (error.message.includes('duplicate') || error.message.includes('unique')) {
           setError('Username is already taken')
+        } else if (error.message.includes('No profile found')) {
+          setError('Profile not found. Please try refreshing the page.')
         } else {
-          setError(error.message)
+          setError(`Error: ${error.message}`)
         }
       } else {
-        // Update the game context with the new profile
-        setUser({ 
-          id: '', 
-          username: username.trim(), 
-          current_stage: 1, 
-          total_taps: 0, 
-          rug_meter: 0, 
-          rug_count: 0, 
-          high_score: 0, 
-          suspicious_activity_count: 0, 
-          ape_balance: 0,
-          consecutive_slips: 0,
-          last_login_date: new Date().toISOString().split('T')[0],
-          daily_ape_earned: 0,
-          daily_taps: 0,
-          tragic_hero_badges: 0,
-          insurance_active: false,
-          insurance_taps_left: 0,
-          referral_code: '',
-          referred_by: null,
-          total_referrals: 0,
-          created_at: '', 
-          updated_at: '' 
-        })
+        console.log('Profile updated successfully')
+        // The profile will be updated in the AuthContext, which will trigger a re-render
+        // No need to manually set the user in GameContext here
       }
-    } catch {
-      setError('An unexpected error occurred')
+    } catch (error) {
+      console.error('Unexpected error in handleSubmit:', error)
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
