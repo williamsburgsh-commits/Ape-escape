@@ -18,7 +18,6 @@ export default function ShareModal({
   shareType, 
   milestoneStage 
 }: ShareModalProps) {
-  const [selectedPlatform, setSelectedPlatform] = useState<SharePlatform | null>(null)
 
   if (!isOpen) return null
 
@@ -33,8 +32,6 @@ export default function ShareModal({
   }
 
   const handlePlatformSelect = (platform: SharePlatform) => {
-    setSelectedPlatform(platform)
-    
     if (platform.id === 'twitter') {
       // Open Twitter with pre-filled tweet
       const tweetText = encodeURIComponent(getShareText(platform))
@@ -114,7 +111,7 @@ export default function ShareModal({
 
         <div className="text-center text-yellow-300 font-press-start text-xs mb-4">
           <p>Max 3 shares per day • 8hr cooldown per platform</p>
-          <p>You'll need to verify your post to get APE rewards!</p>
+          <p>You&apos;ll need to verify your post to get APE rewards!</p>
         </div>
 
         <div className="flex space-x-3">

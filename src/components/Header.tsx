@@ -9,7 +9,7 @@ import { SharePlatform } from '@/types/game'
 
 export default function Header() {
   const { user, profile, signOut } = useAuth()
-  const { gameState, isOnline, shareToPlatform, verifyShare } = useGame()
+  const { gameState, isOnline, verifyShare } = useGame()
   const [showShareModal, setShowShareModal] = useState(false)
   const [showVerificationModal, setShowVerificationModal] = useState(false)
   const [selectedPlatform, setSelectedPlatform] = useState<SharePlatform | null>(null)
