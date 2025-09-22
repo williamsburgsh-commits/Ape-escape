@@ -23,12 +23,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let isMounted = true
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return
+      
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchProfile(session.user.id)
       } else {
+        setLoading(false)
+      }
+    }).catch((error) => {
+      console.error('Error getting initial session:', error)
+      if (isMounted) {
         setLoading(false)
       }
     })
@@ -36,6 +45,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return
+        
         setUser(session?.user ?? null)
         if (session?.user) {
           await fetchProfile(session.user.id)
@@ -46,8 +57,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
 
-    return () => subscription.unsubscribe()
-  }, [])
+    // Timeout to prevent endless loading
+    const timeout = setTimeout(() => {
+      if (isMounted && loading) {
+        console.warn('Auth loading timeout - setting loading to false')
+        setLoading(false)
+      }
+    }, 10000) // 10 second timeout
+
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
+  }, [loading])
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -119,8 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error in fetchProfile:', error)
       console.error('Error details:', JSON.stringify(error, null, 2))
-      // Don't set loading to false here, let the component handle the error state
-    } finally {
+      // Set loading to false even on error to prevent endless loading
       setLoading(false)
     }
   }

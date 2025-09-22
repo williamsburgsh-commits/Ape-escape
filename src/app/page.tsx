@@ -16,6 +16,7 @@ function GameApp() {
   const { user, profile, loading } = useAuth()
   const { setUser } = useGame()
   const [activeTab, setActiveTab] = React.useState('dashboard')
+  const [loadingTimeout, setLoadingTimeout] = React.useState(false)
 
   // Set user profile in game context when it changes
   React.useEffect(() => {
@@ -24,7 +25,20 @@ function GameApp() {
     }
   }, [profile, setUser])
 
-  if (loading) {
+  // Timeout for loading state
+  React.useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => {
+        setLoadingTimeout(true)
+      }, 15000) // 15 second timeout
+
+      return () => clearTimeout(timeout)
+    } else {
+      setLoadingTimeout(false)
+    }
+  }, [loading])
+
+  if (loading && !loadingTimeout) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 to-indigo-600">
         <div className="text-center">
@@ -32,6 +46,28 @@ function GameApp() {
           <div className="text-yellow-400 font-press-start text-lg">
             Loading APE ESCAPE...
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadingTimeout) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 to-indigo-600">
+        <div className="text-center">
+          <span className="text-6xl mb-4 block">🦍</span>
+          <div className="text-yellow-400 font-press-start text-lg mb-4">
+            Loading taking too long...
+          </div>
+          <div className="text-yellow-300 font-press-start text-sm mb-4">
+            Please refresh the page or check your connection
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-yellow-400 hover:bg-yellow-500 text-black font-press-start px-4 py-2 rounded transition-colors"
+          >
+            Refresh Page
+          </button>
         </div>
       </div>
     )
