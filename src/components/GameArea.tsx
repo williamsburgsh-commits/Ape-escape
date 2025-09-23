@@ -45,14 +45,28 @@ export default function GameArea() {
           <button
             onClick={handleApeClick}
             disabled={isAnimating}
-            className={`text-9xl transition-all duration-150 select-none ${
+            className={`text-9xl transition-all duration-150 select-none relative ${
               isAnimating
                 ? 'scale-110 transform rotate-12'
                 : 'hover:scale-105 active:scale-95'
+            } ${
+              gameState.revengeModeActive 
+                ? 'animate-pulse drop-shadow-[0_0_20px_rgba(255,0,0,0.8)]' 
+                : ''
             }`}
           >
             🦍
+            {gameState.revengeModeActive && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-red-500 text-4xl animate-bounce">🔥</div>
+              </div>
+            )}
           </button>
+          {gameState.revengeModeActive && (
+            <div className="text-red-500 font-press-start text-lg mt-2 animate-pulse">
+              REVENGE MODE ACTIVE! 2x TAP POWER! 🔥
+            </div>
+          )}
         </div>
 
         {/* 3. Stage Progress Bar - Clean horizontal bar */}
