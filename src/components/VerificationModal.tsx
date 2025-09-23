@@ -50,15 +50,13 @@ export default function VerificationModal({
 
   return (
     <div 
-      className="fixed z-50 w-80 h-80" 
-      style={{ 
-        bottom: '20px', 
-        right: '20px',
-        position: 'fixed',
-        zIndex: 1000
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
     >
-      <div className="relative bg-gradient-to-br from-purple-600 to-indigo-500 border-2 border-yellow-400 rounded-lg shadow-2xl h-full flex flex-col">
+      <div 
+        className="relative bg-gradient-to-br from-purple-600 to-indigo-500 border-2 border-yellow-400 rounded-lg shadow-2xl w-96 h-96 flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Close button */}
         <button
           onClick={onClose}
