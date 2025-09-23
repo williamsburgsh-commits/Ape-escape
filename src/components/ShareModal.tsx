@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { SharePlatform } from '@/types/game'
 
 interface ShareModalProps {
@@ -28,6 +28,15 @@ export default function ShareModal({
   const [selectedPlatform, setSelectedPlatform] = useState<SharePlatform | null>(null)
   const [url, setUrl] = useState('')
   const [copySuccess, setCopySuccess] = useState(false)
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedPlatform(null)
+      setUrl('')
+      setCopySuccess(false)
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -89,7 +98,7 @@ export default function ShareModal({
       onClick={handleClose}
     >
       <div 
-        className="relative bg-gradient-to-br from-purple-600 to-indigo-500 border-2 border-yellow-400 rounded-lg shadow-2xl w-96 h-96 flex flex-col"
+        className="relative bg-gradient-to-br from-purple-600 to-indigo-500 border-2 border-yellow-400 rounded-lg shadow-2xl w-96 min-h-96 max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
@@ -146,9 +155,17 @@ export default function ShareModal({
 
             {/* Platform buttons */}
             <div className="flex-1 px-4 space-y-2 overflow-y-auto">
+              {/* Debug info */}
+              <div className="text-white text-xs mb-2">
+                Debug: selectedPlatform = {selectedPlatform ? selectedPlatform.name : 'null'}
+              </div>
+              
               {/* TikTok Button */}
               <button
-                onClick={() => handlePlatformSelect({ id: 'tiktok', name: 'TikTok', multiplier: 3, baseReward: 15, icon: '🎵', color: 'bg-black text-white' })}
+                onClick={() => {
+                  console.log('TikTok button clicked')
+                  handlePlatformSelect({ id: 'tiktok', name: 'TikTok', multiplier: 3, baseReward: 15, icon: '🎵', color: 'bg-black text-white' })
+                }}
                 className="w-full p-3 rounded-lg border-2 border-yellow-400 hover:border-yellow-300 hover:scale-105 transition-all duration-200 bg-black text-white text-xs shadow-lg"
               >
                 <div className="flex items-center justify-between">
@@ -168,7 +185,10 @@ export default function ShareModal({
 
               {/* Twitter Button */}
               <button
-                onClick={() => handlePlatformSelect({ id: 'twitter', name: 'Twitter', multiplier: 2, baseReward: 15, icon: '🐦', color: 'bg-blue-500 text-white' })}
+                onClick={() => {
+                  console.log('Twitter button clicked')
+                  handlePlatformSelect({ id: 'twitter', name: 'Twitter', multiplier: 2, baseReward: 15, icon: '🐦', color: 'bg-blue-500 text-white' })
+                }}
                 className="w-full p-3 rounded-lg border-2 border-yellow-400 hover:border-yellow-300 hover:scale-105 transition-all duration-200 bg-blue-500 text-white text-xs shadow-lg"
               >
                 <div className="flex items-center justify-between">
@@ -188,7 +208,10 @@ export default function ShareModal({
 
               {/* Instagram Button */}
               <button
-                onClick={() => handlePlatformSelect({ id: 'instagram', name: 'Instagram', multiplier: 1.5, baseReward: 15, icon: '📷', color: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' })}
+                onClick={() => {
+                  console.log('Instagram button clicked')
+                  handlePlatformSelect({ id: 'instagram', name: 'Instagram', multiplier: 1.5, baseReward: 15, icon: '📷', color: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' })
+                }}
                 className="w-full p-3 rounded-lg border-2 border-yellow-400 hover:border-yellow-300 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs shadow-lg"
               >
                 <div className="flex items-center justify-between">
