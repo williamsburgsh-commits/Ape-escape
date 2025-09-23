@@ -176,12 +176,7 @@ function GameApp() {
           clearShareTrigger()
           setVerificationError(null)
         }}
-        onSelectPlatform={(platform) => {
-          // Use the shareToPlatform function with the current share trigger
-          if (shareTrigger) {
-            shareToPlatform(platform, shareTrigger.type, shareTrigger.milestoneStage)
-          }
-        }}
+        shareToPlatform={shareToPlatform}
         onVerify={async (url, platform) => {
           setIsVerifying(true)
           setVerificationError(null)

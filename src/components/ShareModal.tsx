@@ -6,8 +6,8 @@ import { SharePlatform } from '@/types/game'
 interface ShareModalProps {
   isOpen: boolean
   onClose: () => void
-  onSelectPlatform: (platform: SharePlatform) => void
   onVerify: (url: string, platform: string) => Promise<void>
+  shareToPlatform: (platform: SharePlatform, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
   shareType: 'slip' | 'milestone' | 'manual'
   milestoneStage?: number
   shareMessage?: string
@@ -18,8 +18,8 @@ interface ShareModalProps {
 export default function ShareModal({ 
   isOpen, 
   onClose, 
-  onSelectPlatform, 
   onVerify,
+  shareToPlatform,
   shareType,
   shareMessage,
   isLoading = false,
@@ -42,6 +42,8 @@ export default function ShareModal({
 
   const handlePlatformSelect = (platform: SharePlatform) => {
     setSelectedPlatform(platform)
+    // Call the shareToPlatform function to handle the platform-specific sharing
+    shareToPlatform(platform, shareType, milestoneStage)
   }
 
   const handleCopyMessage = async () => {
