@@ -199,11 +199,11 @@ function GameApp() {
           setSelectedPlatform(null)
           setVerificationError(null)
         }}
-        onVerify={async (url) => {
+        onVerify={async (url, platform) => {
           setIsVerifying(true)
           setVerificationError(null)
           try {
-            await verifyShare(url)
+            await verifyShare(url, platform)
             setShowVerificationModal(false)
             setSelectedPlatform(null)
           } catch (error) {

@@ -23,7 +23,7 @@ interface GameContextType {
   triggerShare: (type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
   clearShareTrigger: () => void
   shareToPlatform: (platform: SharePlatform, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
-  verifyShare: (url: string) => Promise<void>
+  verifyShare: (url: string, platform: string) => Promise<void>
   getShareStats: () => Promise<{ dailyShares: number; cooldowns: Record<string, boolean> }>
   getShareMessage: (type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => string
 }
@@ -808,18 +808,30 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [getShareMessage, addGameMessage])
 
-  const verifyShare = useCallback(async (url: string) => {
+  const verifyShare = useCallback(async (url: string, platform: string) => {
     if (!user || !isOnline) {
       addGameMessage("Must be online to verify shares! 🌐", 'info')
       return
+    }
+
+    // Basic URL validation
+    if (!url || !url.trim()) {
+      throw new Error('URL cannot be empty')
+    }
+
+    // Validate URL format
+    try {
+      new URL(url)
+    } catch {
+      throw new Error('Invalid URL format')
     }
 
     try {
       // Call the server-side function to verify and award APE
       const { data, error } = await supabase.rpc('award_share_ape', {
         p_user_id: user.id,
-        p_platform: 'twitter', // This should be passed from the modal
-        p_url: url
+        p_platform: platform,
+        p_url: url.trim()
       })
 
       if (error) {
