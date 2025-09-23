@@ -12,10 +12,6 @@ export default function ProfileReferral() {
   const [isLoading, setIsLoading] = useState(false)
   const [showGangCreated, setShowGangCreated] = useState(false)
 
-  if (!user || !profile) return null
-
-  const isGangLeader = profile.total_referrals >= REFERRAL_REWARDS.GANG_THRESHOLD
-
   // Check for gang creation when profile updates
   useEffect(() => {
     if (profile && profile.total_referrals >= REFERRAL_REWARDS.GANG_THRESHOLD) {
@@ -23,7 +19,11 @@ export default function ProfileReferral() {
       // Hide the message after 5 seconds
       setTimeout(() => setShowGangCreated(false), 5000)
     }
-  }, [profile?.total_referrals])
+  }, [profile])
+
+  if (!user || !profile) return null
+
+  const isGangLeader = profile.total_referrals >= REFERRAL_REWARDS.GANG_THRESHOLD
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,7 +51,7 @@ export default function ProfileReferral() {
       {/* Gang Created Notification */}
       {showGangCreated && (
         <div className="mb-4 bg-green-600/20 border border-green-500 text-green-400 px-4 py-3 rounded-lg font-press-start text-sm text-center animate-pulse">
-          🎉 CONGRATULATIONS! You've reached {REFERRAL_REWARDS.GANG_THRESHOLD} referrals and become a Gang Leader! 👑
+          🎉 CONGRATULATIONS! You&apos;ve reached {REFERRAL_REWARDS.GANG_THRESHOLD} referrals and become a Gang Leader! 👑
         </div>
       )}
       
