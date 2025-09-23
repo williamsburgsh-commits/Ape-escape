@@ -587,20 +587,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     // Process tap
     const oldStage = gameState.currentStage
+    const tapsToNextStage = STAGE_FORMULA(oldStage)
+    const shouldStageUp = (gameState.rugMeter + 1) >= tapsToNextStage
+    
     dispatch({ type: 'TAP' })
     
     // Check if stage increased
-    if (gameState.currentStage > oldStage) {
+    if (shouldStageUp) {
       dispatch({ type: 'STAGE_UP' })
-      addGameMessage(`Stage Up! Evolved to Stage ${gameState.currentStage}! 🎉`, 'stage-up')
+      addGameMessage(`Stage Up! Evolved to Stage ${oldStage + 1}! 🎉`, 'stage-up')
       
       // Trigger share modal for milestone
       setTimeout(() => {
-        triggerShare('milestone', gameState.currentStage)
+        triggerShare('milestone', oldStage + 1)
       }, 2000)
       
       // Check for stage 10 referral bonus
-      if (gameState.currentStage === 10 && user?.referred_by) {
+      if ((oldStage + 1) === 10 && user?.referred_by) {
         // Award bonus to referrer
         try {
           const { error } = await supabase
@@ -707,15 +710,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       addGameMessage(`Referral code used! +${REFERRAL_REWARDS.NEW_USER} APE! 🎉`, 'stage-up')
 
       // Award APE to referrer
+      const newTotalReferrals = referrer.total_referrals + 1
       const { error: referrerUpdateError } = await supabase
         .from('profiles')
         .update({ 
           ape_balance: referrer.ape_balance + REFERRAL_REWARDS.REFERRER,
-          total_referrals: referrer.total_referrals + 1
+          total_referrals: newTotalReferrals
         })
         .eq('id', referrer.id)
 
       if (referrerUpdateError) throw referrerUpdateError
+
+      // Check if referrer became a gang leader
+      if (newTotalReferrals === REFERRAL_REWARDS.GANG_THRESHOLD) {
+        addGameMessage(`🎉 ${referrer.username} just became a Gang Leader with ${newTotalReferrals} referrals! 👑`, 'stage-up')
+      }
 
       // Update local user state
       setUser({ ...user, referred_by: referrer.id })

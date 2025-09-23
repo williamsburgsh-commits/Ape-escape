@@ -55,8 +55,8 @@ export default function ShareModal({
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-80 h-64">
-      <div className="relative bg-gradient-to-br from-purple-600 to-indigo-500 border-2 border-yellow-400 rounded-lg shadow-2xl h-full flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="relative bg-gradient-to-br from-purple-600 to-indigo-500 border-2 border-yellow-400 rounded-lg shadow-2xl w-80 h-64 flex flex-col">
         {/* Close button */}
         <button
           onClick={onClose}
