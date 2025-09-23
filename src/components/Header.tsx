@@ -1,27 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGame } from '@/contexts/GameContext'
-import ShareModal from './ShareModal'
-import VerificationModal from './VerificationModal'
-import { SharePlatform } from '@/types/game'
 
 export default function Header() {
   const { user, profile, signOut } = useAuth()
-  const { gameState, isOnline, verifyShare, shareTrigger, clearShareTrigger, shareToPlatform, getShareMessage } = useGame()
-  const [showShareModal, setShowShareModal] = useState(false)
-  const [showVerificationModal, setShowVerificationModal] = useState(false)
-  const [selectedPlatform, setSelectedPlatform] = useState<SharePlatform | null>(null)
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [verificationError, setVerificationError] = useState<string | null>(null)
-
-  // Listen for share triggers from GameContext
-  React.useEffect(() => {
-    if (shareTrigger) {
-      setShowShareModal(true)
-    }
-  }, [shareTrigger])
+  const { gameState, isOnline, triggerShare } = useGame()
 
   return (
     <header className="bg-black/20 backdrop-blur-sm border-b-2 border-yellow-400 px-6 py-4">
@@ -69,7 +54,7 @@ export default function Header() {
           )}
 
           <button
-            onClick={() => setShowShareModal(true)}
+            onClick={() => triggerShare('manual', gameState.currentStage)}
             className="bg-yellow-600 hover:bg-yellow-700 text-black px-3 py-1 rounded font-press-start text-sm transition-colors"
           >
             📱 Share
@@ -87,52 +72,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Share Modal */}
-      <ShareModal
-        isOpen={showShareModal}
-        onClose={() => {
-          setShowShareModal(false)
-          clearShareTrigger()
-        }}
-        onSelectPlatform={(platform) => {
-          setSelectedPlatform(platform)
-          setShowShareModal(false)
-          setShowVerificationModal(true)
-          // Use the shareToPlatform function with the current share trigger
-          if (shareTrigger) {
-            shareToPlatform(platform, shareTrigger.type, shareTrigger.milestoneStage)
-          }
-        }}
-        shareType={shareTrigger?.type || 'manual'}
-        milestoneStage={shareTrigger?.milestoneStage}
-        shareMessage={shareTrigger ? getShareMessage(shareTrigger.type, shareTrigger.milestoneStage) : undefined}
-      />
-
-      {/* Verification Modal */}
-      <VerificationModal
-        isOpen={showVerificationModal}
-        onClose={() => {
-          setShowVerificationModal(false)
-          setSelectedPlatform(null)
-          setVerificationError(null)
-        }}
-        onVerify={async (url) => {
-          setIsVerifying(true)
-          setVerificationError(null)
-          try {
-            await verifyShare(url)
-            setShowVerificationModal(false)
-            setSelectedPlatform(null)
-          } catch (error) {
-            setVerificationError(error instanceof Error ? error.message : 'Verification failed')
-          } finally {
-            setIsVerifying(false)
-          }
-        }}
-        platform={selectedPlatform}
-        isLoading={isVerifying}
-        error={verificationError}
-      />
     </header>
   )
 }
