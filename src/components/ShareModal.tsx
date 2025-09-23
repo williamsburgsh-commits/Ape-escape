@@ -21,6 +21,7 @@ export default function ShareModal({
   onVerify,
   shareToPlatform,
   shareType,
+  milestoneStage,
   shareMessage,
   isLoading = false,
   error = null
