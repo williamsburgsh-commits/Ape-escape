@@ -50,7 +50,7 @@ export default function ShareModal({
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 w-80 h-64">
+    <div className="fixed bottom-5 right-5 z-50 w-80 h-64" style={{ marginBottom: '20px', marginRight: '20px' }}>
       <div className="relative bg-gradient-to-br from-purple-600 to-indigo-500 border-2 border-yellow-400 rounded-lg shadow-2xl h-full flex flex-col">
         {/* Close button */}
         <button
@@ -74,11 +74,11 @@ export default function ShareModal({
         {/* Share Message Preview */}
         {shareMessage && (
           <div className="px-4 mb-3">
-            <div className="bg-black/30 rounded-lg p-3">
+            <div className="bg-black/30 rounded-lg p-3 max-h-20 overflow-y-auto">
               <div className="text-yellow-300 font-press-start text-xs mb-1" style={{ textShadow: '1px 1px 0px #000' }}>
                 Preview:
               </div>
-              <div className="text-white font-press-start text-xs break-words">
+              <div className="text-white font-press-start text-xs break-words" style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
                 {shareMessage}
               </div>
             </div>

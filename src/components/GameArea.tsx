@@ -119,7 +119,7 @@ export default function GameArea() {
       </div>
 
       {/* Game Messages - Fixed positioning in lower-right corner */}
-      <div className="fixed bottom-5 right-5 space-y-2 z-50 max-w-sm">
+      <div className="fixed bottom-5 right-5 space-y-2 z-40 max-w-md min-w-80" style={{ maxWidth: 'calc(100vw - 40px)', marginRight: '20px', marginBottom: '20px' }}>
         {gameMessages.map((message) => {
           let bgColor = 'bg-gray-600'
           let textColor = 'text-white'
@@ -143,9 +143,11 @@ export default function GameArea() {
           return (
             <div
               key={message.id}
-              className={`${bgColor} ${textColor} px-4 py-2 rounded-lg font-press-start text-sm shadow-lg transform transition-all duration-300 ease-in-out animate-fade-in`}
+              className={`${bgColor} ${textColor} px-4 py-3 rounded-lg font-press-start text-sm shadow-lg transform transition-all duration-300 ease-in-out animate-fade-in break-words`}
               style={{
-                animation: 'slideInFromRight 0.3s ease-out'
+                animation: 'slideInFromRight 0.3s ease-out',
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word'
               }}
             >
               {message.message}
