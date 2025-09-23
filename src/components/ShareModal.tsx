@@ -50,7 +50,15 @@ export default function ShareModal({
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 w-80 h-64" style={{ marginBottom: '20px', marginRight: '20px' }}>
+    <div 
+      className="fixed z-50 w-80 h-64" 
+      style={{ 
+        bottom: '20px', 
+        right: '20px',
+        position: 'fixed',
+        zIndex: 1000
+      }}
+    >
       <div className="relative bg-gradient-to-br from-purple-600 to-indigo-500 border-2 border-yellow-400 rounded-lg shadow-2xl h-full flex flex-col">
         {/* Close button */}
         <button

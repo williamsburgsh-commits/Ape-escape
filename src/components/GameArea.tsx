@@ -119,7 +119,16 @@ export default function GameArea() {
       </div>
 
       {/* Game Messages - Fixed positioning in lower-right corner */}
-      <div className="fixed bottom-5 right-5 space-y-2 z-40 max-w-md min-w-80" style={{ maxWidth: 'calc(100vw - 40px)', marginRight: '20px', marginBottom: '20px' }}>
+      <div 
+        className="fixed space-y-2 max-w-md min-w-80" 
+        style={{ 
+          bottom: '20px', 
+          right: '20px',
+          position: 'fixed',
+          zIndex: 1000,
+          maxWidth: 'calc(100vw - 40px)'
+        }}
+      >
         {gameMessages.map((message) => {
           let bgColor = 'bg-gray-600'
           let textColor = 'text-white'
