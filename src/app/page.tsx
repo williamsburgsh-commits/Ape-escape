@@ -11,20 +11,12 @@ import LeftSidebar from '@/components/LeftSidebar'
 import RightSidebar from '@/components/RightSidebar'
 import GameArea from '@/components/GameArea'
 import ProfileReferral from '@/components/ProfileReferral'
-import ShareModal from '@/components/ShareModal'
-import VerificationModal from '@/components/VerificationModal'
-import { SharePlatform } from '@/types/game'
 
 function GameApp() {
   const { user, profile, loading } = useAuth()
-  const { setUser, shareTrigger, clearShareTrigger, shareToPlatform, verifyShare, getShareMessage } = useGame()
+  const { setUser } = useGame()
   const [activeTab, setActiveTab] = React.useState('dashboard')
   const [loadingTimeout, setLoadingTimeout] = React.useState(false)
-  const [showShareModal, setShowShareModal] = React.useState(false)
-  const [showVerificationModal, setShowVerificationModal] = React.useState(false)
-  const [selectedPlatform, setSelectedPlatform] = React.useState<SharePlatform | null>(null)
-  const [isVerifying, setIsVerifying] = React.useState(false)
-  const [verificationError, setVerificationError] = React.useState<string | null>(null)
 
   // Set user profile in game context when it changes
   React.useEffect(() => {
@@ -33,12 +25,6 @@ function GameApp() {
     }
   }, [profile, setUser])
 
-  // Listen for share triggers from GameContext
-  React.useEffect(() => {
-    if (shareTrigger) {
-      setShowShareModal(true)
-    }
-  }, [shareTrigger])
 
   // Timeout for loading state
   React.useEffect(() => {
@@ -170,53 +156,6 @@ function GameApp() {
         <RightSidebar />
       </div>
 
-      {/* Share Modal */}
-      <ShareModal
-        isOpen={showShareModal}
-        onClose={() => {
-          setShowShareModal(false)
-          clearShareTrigger()
-        }}
-        onSelectPlatform={(platform) => {
-          setSelectedPlatform(platform)
-          setShowShareModal(false)
-          setShowVerificationModal(true)
-          // Use the shareToPlatform function with the current share trigger
-          if (shareTrigger) {
-            shareToPlatform(platform, shareTrigger.type, shareTrigger.milestoneStage)
-          }
-        }}
-        shareType={shareTrigger?.type || 'manual'}
-        milestoneStage={shareTrigger?.milestoneStage}
-        shareMessage={shareTrigger ? getShareMessage(shareTrigger.type, shareTrigger.milestoneStage) : undefined}
-      />
-
-      {/* Verification Modal */}
-      <VerificationModal
-        isOpen={showVerificationModal}
-        onClose={() => {
-          setShowVerificationModal(false)
-          setSelectedPlatform(null)
-          setVerificationError(null)
-        }}
-        onVerify={async (url, platform) => {
-          setIsVerifying(true)
-          setVerificationError(null)
-          try {
-            await verifyShare(url, platform)
-            setShowVerificationModal(false)
-            setSelectedPlatform(null)
-          } catch (error) {
-            setVerificationError(error instanceof Error ? error.message : 'Verification failed')
-          } finally {
-            setIsVerifying(false)
-          }
-        }}
-        platform={selectedPlatform}
-        isLoading={isVerifying}
-        error={verificationError}
-        shareMessage={shareTrigger ? getShareMessage(shareTrigger.type, shareTrigger.milestoneStage) : undefined}
-      />
     </div>
   )
 }
