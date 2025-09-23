@@ -77,19 +77,34 @@ export default function ShareModal({
           </p>
         </div>
 
-        {/* Share Message Preview */}
-        {shareMessage && (
+        {/* Share Message - Always show if available */}
+        {shareMessage ? (
           <div className="px-4 mb-3">
-            <div className="bg-black/30 rounded-lg p-3 max-h-20 overflow-y-auto">
-              <div className="text-yellow-300 font-press-start text-xs mb-1" style={{ textShadow: '1px 1px 0px #000' }}>
-                Preview:
+            <div className="bg-black/30 rounded-lg p-3 max-h-24 overflow-y-auto border border-yellow-400/50">
+              <div className="text-yellow-300 font-press-start text-xs mb-2 font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
+                📝 Your Share Message:
               </div>
-              <div className="text-white font-press-start text-xs break-words" style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+              <div className="text-white font-press-start text-xs break-words leading-relaxed" style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
                 {shareMessage}
               </div>
             </div>
           </div>
+        ) : (
+          <div className="px-4 mb-3">
+            <div className="bg-black/30 rounded-lg p-3 border border-yellow-400/50">
+              <div className="text-yellow-300 font-press-start text-xs text-center" style={{ textShadow: '1px 1px 0px #000' }}>
+                🎯 Select a platform to generate your share message!
+              </div>
+            </div>
+          </div>
         )}
+
+        {/* Platform Selection */}
+        <div className="px-4 mb-2">
+          <div className="text-yellow-300 font-press-start text-xs font-bold mb-2" style={{ textShadow: '1px 1px 0px #000' }}>
+            🚀 Choose Your Platform:
+          </div>
+        </div>
 
         {/* Platform buttons */}
         <div className="flex-1 px-4 space-y-2 overflow-y-auto">
@@ -97,22 +112,22 @@ export default function ShareModal({
             <button
               key={platform.id}
               onClick={() => handlePlatformSelect(platform)}
-              className={`w-full p-2 rounded border-2 border-yellow-400 hover:border-yellow-300 transition-colors ${platform.color} text-xs`}
+              className={`w-full p-3 rounded-lg border-2 border-yellow-400 hover:border-yellow-300 hover:scale-105 transition-all duration-200 ${platform.color} text-xs shadow-lg`}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">{platform.icon}</span>
+                <div className="flex items-center space-x-3">
+                  <span className="text-xl">{platform.icon}</span>
                   <div className="text-left">
-                    <div className="font-press-start font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
+                    <div className="font-press-start font-bold text-sm" style={{ textShadow: '1px 1px 0px #000' }}>
                       {platform.name}
                     </div>
-                    <div className="text-xs opacity-90" style={{ textShadow: '1px 1px 0px #000' }}>
-                      {platform.multiplier}x = {platform.baseReward * platform.multiplier} APE
+                    <div className="text-xs opacity-90 font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
+                      {platform.multiplier}x Multiplier = {platform.baseReward * platform.multiplier} APE
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs opacity-90" style={{ textShadow: '1px 1px 0px #000' }}>
+                  <div className="text-xs opacity-90 font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
                     {platform.id === 'twitter' ? 'Auto-open' : 'Copy text'}
                   </div>
                 </div>
@@ -122,12 +137,15 @@ export default function ShareModal({
         </div>
 
         {/* Footer info */}
-        <div className="p-3 text-center">
-          <div className="text-yellow-300 font-press-start text-xs mb-1" style={{ textShadow: '1px 1px 0px #000' }}>
-            Max 3 shares per day • 8hr cooldown
+        <div className="p-3 text-center bg-black/20 rounded-b-lg">
+          <div className="text-yellow-300 font-press-start text-xs mb-2 font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
+            ⚠️ Manual Verification Required
           </div>
-          <div className="text-yellow-300 font-press-start text-xs" style={{ textShadow: '1px 1px 0px #000' }}>
-            Verify your post to get APE rewards!
+          <div className="text-yellow-300 font-press-start text-xs mb-1" style={{ textShadow: '1px 1px 0px #000' }}>
+            Max 3 shares per day • 8hr cooldown per platform
+          </div>
+          <div className="text-yellow-400 font-press-start text-xs font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
+            🎯 Verify your post URL to get APE rewards!
           </div>
         </div>
       </div>
