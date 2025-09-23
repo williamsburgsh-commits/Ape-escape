@@ -632,7 +632,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (isOnline && user) {
       syncGameState()
     }
-  }, [gameState, user, isOnline, addGameMessage, syncGameState, triggerShare])
+  }, [gameState, user, isOnline, addGameMessage, syncGameState])
 
   const buyInsurance = useCallback(() => {
     if (gameState.apeBalance >= APE_SPENDING.SLIP_INSURANCE && !gameState.insuranceActive) {
