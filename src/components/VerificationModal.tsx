@@ -49,7 +49,7 @@ export default function VerificationModal({
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-80 h-80">
+    <div className="fixed bottom-5 right-5 z-50 w-80 h-80">
       <div className="relative bg-gradient-to-br from-purple-600 to-indigo-500 border-2 border-yellow-400 rounded-lg shadow-2xl h-full flex flex-col">
         {/* Close button */}
         <button

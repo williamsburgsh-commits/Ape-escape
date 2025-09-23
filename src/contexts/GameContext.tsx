@@ -25,6 +25,7 @@ interface GameContextType {
   shareToPlatform: (platform: SharePlatform, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
   verifyShare: (url: string) => Promise<void>
   getShareStats: () => Promise<{ dailyShares: number; cooldowns: Record<string, boolean> }>
+  getShareMessage: (type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => string
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -900,7 +901,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     clearShareTrigger,
     shareToPlatform,
     verifyShare,
-    getShareStats
+    getShareStats,
+    getShareMessage
   }
 
   return (

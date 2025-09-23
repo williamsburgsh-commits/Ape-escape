@@ -9,13 +9,15 @@ interface ShareModalProps {
   onSelectPlatform: (platform: SharePlatform) => void
   shareType: 'slip' | 'milestone' | 'manual'
   milestoneStage?: number
+  shareMessage?: string
 }
 
 export default function ShareModal({ 
   isOpen, 
   onClose, 
   onSelectPlatform, 
-  shareType
+  shareType,
+  shareMessage
 }: ShareModalProps) {
 
   if (!isOpen) return null
@@ -48,8 +50,8 @@ export default function ShareModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="relative bg-gradient-to-br from-purple-600 to-indigo-500 border-2 border-yellow-400 rounded-lg shadow-2xl w-80 h-64 flex flex-col">
+    <div className="fixed bottom-5 right-5 z-50 w-80 h-64">
+      <div className="relative bg-gradient-to-br from-purple-600 to-indigo-500 border-2 border-yellow-400 rounded-lg shadow-2xl h-full flex flex-col">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -68,6 +70,20 @@ export default function ShareModal({
             {getSubtitle()}
           </p>
         </div>
+
+        {/* Share Message Preview */}
+        {shareMessage && (
+          <div className="px-4 mb-3">
+            <div className="bg-black/30 rounded-lg p-3">
+              <div className="text-yellow-300 font-press-start text-xs mb-1" style={{ textShadow: '1px 1px 0px #000' }}>
+                Preview:
+              </div>
+              <div className="text-white font-press-start text-xs break-words">
+                {shareMessage}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Platform buttons */}
         <div className="flex-1 px-4 space-y-2 overflow-y-auto">

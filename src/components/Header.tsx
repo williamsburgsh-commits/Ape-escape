@@ -9,7 +9,7 @@ import { SharePlatform } from '@/types/game'
 
 export default function Header() {
   const { user, profile, signOut } = useAuth()
-  const { gameState, isOnline, verifyShare, shareTrigger, clearShareTrigger, shareToPlatform } = useGame()
+  const { gameState, isOnline, verifyShare, shareTrigger, clearShareTrigger, shareToPlatform, getShareMessage } = useGame()
   const [showShareModal, setShowShareModal] = useState(false)
   const [showVerificationModal, setShowVerificationModal] = useState(false)
   const [selectedPlatform, setSelectedPlatform] = useState<SharePlatform | null>(null)
@@ -105,6 +105,7 @@ export default function Header() {
         }}
         shareType={shareTrigger?.type || 'manual'}
         milestoneStage={shareTrigger?.milestoneStage}
+        shareMessage={shareTrigger ? getShareMessage(shareTrigger.type, shareTrigger.milestoneStage) : undefined}
       />
 
       {/* Verification Modal */}
