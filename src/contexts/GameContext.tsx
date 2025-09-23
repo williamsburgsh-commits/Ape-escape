@@ -575,6 +575,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [gameState.sessionActiveTime, addGameMessage])
 
+  // Share trigger functions
+  const triggerShare = useCallback((type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
+    setShareTrigger({ type, milestoneStage })
+  }, [])
+
+  const clearShareTrigger = useCallback(() => {
+    setShareTrigger(null)
+  }, [])
+
   const handleTap = useCallback(async () => {
     const now = Date.now()
     const timeSinceLastTap = now - gameState.lastTapTime
@@ -778,14 +787,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     addGameMessage(`Referral code copied! Share ${user.referral_code} with friends! 📋`, 'info')
   }, [user, addGameMessage])
 
-  // Share trigger functions
-  const triggerShare = useCallback((type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
-    setShareTrigger({ type, milestoneStage })
-  }, [])
-
-  const clearShareTrigger = useCallback(() => {
-    setShareTrigger(null)
-  }, [])
 
   // Generate share messages
   const getShareMessage = useCallback((type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {

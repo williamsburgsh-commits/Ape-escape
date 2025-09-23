@@ -12,7 +12,6 @@ import RightSidebar from '@/components/RightSidebar'
 import GameArea from '@/components/GameArea'
 import ProfileReferral from '@/components/ProfileReferral'
 import ShareModal from '@/components/ShareModal'
-import { SharePlatform } from '@/types/game'
 
 function GameApp() {
   const { user, profile, loading } = useAuth()
