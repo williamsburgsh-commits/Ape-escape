@@ -795,18 +795,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   // Social sharing functions
   const shareToPlatform = useCallback((platform: SharePlatform, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
-    const shareText = getShareMessage(shareType, milestoneStage)
-    
-    if (platform.id === 'twitter') {
-      // Open Twitter with pre-filled tweet
-      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`
-      window.open(twitterUrl, '_blank')
-    } else {
-      // Copy to clipboard for TikTok/Instagram
-      navigator.clipboard.writeText(shareText)
-      addGameMessage(`Caption copied for ${platform.name}! Paste it in your post. 📋`, 'info')
-    }
-  }, [getShareMessage, addGameMessage])
+    // The actual sharing behavior is now handled in the VerificationModal
+    // This function is called when a platform is selected, but the modal handles the UI
+    addGameMessage(`Selected ${platform.name} for sharing! 🚀`, 'info')
+  }, [addGameMessage])
 
   const verifyShare = useCallback(async (url: string, platform: string) => {
     if (!user || !isOnline) {
@@ -820,10 +812,32 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Validate URL format
+    let parsedUrl: URL
     try {
-      new URL(url)
+      parsedUrl = new URL(url)
     } catch {
       throw new Error('Invalid URL format')
+    }
+
+    // Platform-specific URL validation
+    const hostname = parsedUrl.hostname.toLowerCase()
+    
+    if (platform === 'twitter') {
+      // Validate Twitter/X URL
+      if (!hostname.includes('twitter.com') && !hostname.includes('x.com')) {
+        throw new Error('URL must be from Twitter/X (twitter.com or x.com)')
+      }
+      
+      // For Twitter, we can't easily verify the content, so we just validate the URL format
+      // The user should have shared the message we provided
+    } else if (platform === 'tiktok') {
+      if (!hostname.includes('tiktok.com')) {
+        throw new Error('URL must be from TikTok (tiktok.com)')
+      }
+    } else if (platform === 'instagram') {
+      if (!hostname.includes('instagram.com')) {
+        throw new Error('URL must be from Instagram (instagram.com)')
+      }
     }
 
     try {

@@ -106,34 +106,82 @@ export default function ShareModal({
           </div>
         </div>
 
-        {/* Platform buttons */}
+        {/* Platform buttons - Three specific platforms */}
         <div className="flex-1 px-4 space-y-2 overflow-y-auto">
-          {SHARE_PLATFORMS.map((platform) => (
-            <button
-              key={platform.id}
-              onClick={() => handlePlatformSelect(platform)}
-              className={`w-full p-3 rounded-lg border-2 border-yellow-400 hover:border-yellow-300 hover:scale-105 transition-all duration-200 ${platform.color} text-xs shadow-lg`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <span className="text-xl">{platform.icon}</span>
-                  <div className="text-left">
-                    <div className="font-press-start font-bold text-sm" style={{ textShadow: '1px 1px 0px #000' }}>
-                      {platform.name}
-                    </div>
-                    <div className="text-xs opacity-90 font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
-                      {platform.multiplier}x Multiplier = {platform.baseReward * platform.multiplier} APE
-                    </div>
+          {/* TikTok Button */}
+          <button
+            onClick={() => handlePlatformSelect(SHARE_PLATFORMS.find(p => p.id === 'tiktok')!)}
+            className="w-full p-3 rounded-lg border-2 border-yellow-400 hover:border-yellow-300 hover:scale-105 transition-all duration-200 bg-black text-white text-xs shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <span className="text-xl">🎵</span>
+                <div className="text-left">
+                  <div className="font-press-start font-bold text-sm" style={{ textShadow: '1px 1px 0px #000' }}>
+                    TikTok
                   </div>
-                </div>
-                <div className="text-right">
                   <div className="text-xs opacity-90 font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
-                    {platform.id === 'twitter' ? 'Auto-open' : 'Copy text'}
+                    3x Multiplier = 45 APE
                   </div>
                 </div>
               </div>
-            </button>
-          ))}
+              <div className="text-right">
+                <div className="text-xs opacity-90 font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
+                  Copy text
+                </div>
+              </div>
+            </div>
+          </button>
+
+          {/* X/Twitter Button */}
+          <button
+            onClick={() => handlePlatformSelect(SHARE_PLATFORMS.find(p => p.id === 'twitter')!)}
+            className="w-full p-3 rounded-lg border-2 border-yellow-400 hover:border-yellow-300 hover:scale-105 transition-all duration-200 bg-blue-500 text-white text-xs shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <span className="text-xl">🐦</span>
+                <div className="text-left">
+                  <div className="font-press-start font-bold text-sm" style={{ textShadow: '1px 1px 0px #000' }}>
+                    X/Twitter
+                  </div>
+                  <div className="text-xs opacity-90 font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
+                    2x Multiplier = 30 APE
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs opacity-90 font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
+                  Auto-open
+                </div>
+              </div>
+            </div>
+          </button>
+
+          {/* Instagram Button */}
+          <button
+            onClick={() => handlePlatformSelect(SHARE_PLATFORMS.find(p => p.id === 'instagram')!)}
+            className="w-full p-3 rounded-lg border-2 border-yellow-400 hover:border-yellow-300 hover:scale-105 transition-all duration-200 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <span className="text-xl">📷</span>
+                <div className="text-left">
+                  <div className="font-press-start font-bold text-sm" style={{ textShadow: '1px 1px 0px #000' }}>
+                    Instagram
+                  </div>
+                  <div className="text-xs opacity-90 font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
+                    1.5x Multiplier = 22 APE
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs opacity-90 font-bold" style={{ textShadow: '1px 1px 0px #000' }}>
+                  Copy text
+                </div>
+              </div>
+            </div>
+          </button>
         </div>
 
         {/* Footer info */}

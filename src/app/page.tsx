@@ -215,6 +215,7 @@ function GameApp() {
         platform={selectedPlatform}
         isLoading={isVerifying}
         error={verificationError}
+        shareMessage={shareTrigger ? getShareMessage(shareTrigger.type, shareTrigger.milestoneStage) : undefined}
       />
     </div>
   )
