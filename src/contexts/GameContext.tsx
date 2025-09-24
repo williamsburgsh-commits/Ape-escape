@@ -20,6 +20,14 @@ interface GameContextType {
   copyReferralCode: () => void
   // Revenge mode
   activateRevengeMode: () => void
+  // Social sharing functions
+  shareTrigger: { type: 'slip' | 'milestone' | 'manual'; milestoneStage?: number } | null
+  triggerShare: (type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
+  clearShareTrigger: () => void
+  shareToPlatform: (platform: { id: string; name: string }, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
+  verifyShare: (url: string, platform: string) => Promise<void>
+  getShareStats: () => Promise<{ dailyShares: number; cooldowns: Record<string, boolean> }>
+  getShareMessage: (type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => string
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -407,6 +415,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [gameMessages, setGameMessages] = React.useState<GameMessage[]>([])
   const [slipMessages] = React.useState<SlipMessage[]>([])
   const [isOnline, setIsOnline] = React.useState(true)
+  const [shareTrigger, setShareTrigger] = React.useState<{ type: 'slip' | 'milestone' | 'manual'; milestoneStage?: number } | null>(null)
 
   // Load game state from localStorage on mount
   useEffect(() => {
@@ -594,6 +603,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const randomMessage = SLIP_MESSAGES[Math.floor(Math.random() * SLIP_MESSAGES.length)]
       addGameMessage(randomMessage, 'slip')
       
+      // Trigger share modal for slip
+      setTimeout(() => {
+        triggerShare('slip')
+      }, 2000)
       
       return
     }
@@ -614,6 +627,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'STAGE_UP' })
       addGameMessage(`Stage Up! Evolved to Stage ${oldStage + 1}! 🎉`, 'stage-up')
       
+      // Trigger share modal for milestone
+      setTimeout(() => {
+        triggerShare('milestone', oldStage + 1)
+      }, 2000)
       
       // Check for stage 10 referral bonus
       if ((oldStage + 1) === 10 && user?.referred_by) {
@@ -778,6 +795,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }, REVENGE_MODE.DURATION)
   }, [addGameMessage])
 
+  // Share trigger functions
+  const triggerShare = useCallback((type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
+    setShareTrigger({ type, milestoneStage })
+  }, [])
+
+  const clearShareTrigger = useCallback(() => {
+    setShareTrigger(null)
+  }, [])
+
 
 
 
@@ -798,7 +824,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     resetSessionTime,
     applyReferralCode,
     copyReferralCode,
-    activateRevengeMode
+    activateRevengeMode,
+    shareTrigger,
+    triggerShare,
+    clearShareTrigger,
+    shareToPlatform: () => {},
+    verifyShare: async () => {},
+    getShareStats: async () => ({ dailyShares: 0, cooldowns: {} }),
+    getShareMessage: () => ''
   }
 
   return (

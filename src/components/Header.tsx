@@ -6,7 +6,7 @@ import { useGame } from '@/contexts/GameContext'
 
 export default function Header() {
   const { user, profile, signOut } = useAuth()
-  const { gameState, isOnline } = useGame()
+  const { gameState, isOnline, triggerShare } = useGame()
 
   return (
     <header className="bg-black/20 backdrop-blur-sm border-b-2 border-yellow-400 px-6 py-4">
@@ -53,7 +53,12 @@ export default function Header() {
             </div>
           )}
 
-
+          <button
+            onClick={() => triggerShare('manual', gameState.currentStage)}
+            className="bg-yellow-600 hover:bg-yellow-700 text-black px-3 py-1 rounded font-press-start text-sm transition-colors"
+          >
+            📱 Share
+          </button>
 
           <button
             onClick={() => {

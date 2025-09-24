@@ -11,12 +11,16 @@ import LeftSidebar from '@/components/LeftSidebar'
 import RightSidebar from '@/components/RightSidebar'
 import GameArea from '@/components/GameArea'
 import ProfileReferral from '@/components/ProfileReferral'
+import ShareModal from '@/components/ShareModal'
 
 function GameApp() {
   const { user, profile, loading } = useAuth()
-  const { setUser } = useGame()
+  const { setUser, shareTrigger, clearShareTrigger, shareToPlatform, verifyShare, getShareMessage, activateRevengeMode } = useGame()
   const [activeTab, setActiveTab] = React.useState('dashboard')
   const [loadingTimeout, setLoadingTimeout] = React.useState(false)
+  const [showShareModal, setShowShareModal] = React.useState(false)
+  const [isVerifying, setIsVerifying] = React.useState(false)
+  const [verificationError, setVerificationError] = React.useState<string | null>(null)
 
   // Set user profile in game context when it changes
   React.useEffect(() => {
@@ -25,7 +29,12 @@ function GameApp() {
     }
   }, [profile, setUser])
 
-
+  // Listen for share triggers from GameContext
+  React.useEffect(() => {
+    if (shareTrigger) {
+      setShowShareModal(true)
+    }
+  }, [shareTrigger])
 
   // Timeout for loading state
   React.useEffect(() => {
@@ -165,6 +174,46 @@ function GameApp() {
         {renderContent()}
         <RightSidebar />
       </div>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => {
+          setShowShareModal(false)
+          clearShareTrigger()
+          setVerificationError(null)
+        }}
+        shareToPlatform={shareToPlatform}
+        onVerify={async (url, platform) => {
+          console.log('🎯 Starting share verification:', { url, platform })
+          setIsVerifying(true)
+          setVerificationError(null)
+          
+          try {
+            await verifyShare(url, platform)
+            console.log('✅ Verification completed successfully')
+            
+            // Activate revenge mode if this was a slip share
+            if (shareTrigger?.type === 'slip') {
+              console.log('🔥 Activating revenge mode for slip share')
+              activateRevengeMode()
+            }
+            
+          } catch (error) {
+            console.error('❌ Verification failed:', error)
+            const errorMessage = error instanceof Error ? error.message : 'Verification failed'
+            setVerificationError(errorMessage)
+            throw error // Re-throw so ShareModal can handle it
+          } finally {
+            setIsVerifying(false)
+          }
+        }}
+        shareType={shareTrigger?.type || 'manual'}
+        milestoneStage={shareTrigger?.milestoneStage}
+        shareMessage={shareTrigger ? getShareMessage(shareTrigger.type, shareTrigger.milestoneStage) : ''}
+        isLoading={isVerifying}
+        error={verificationError}
+      />
 
     </div>
   )
