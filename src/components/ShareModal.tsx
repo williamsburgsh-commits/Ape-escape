@@ -29,6 +29,7 @@ export default function ShareModal({
   const [selectedPlatform, setSelectedPlatform] = useState<SharePlatform | null>(null)
   const [url, setUrl] = useState('')
   const [copySuccess, setCopySuccess] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
 
   // Reset state when modal opens
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function ShareModal({
       setSelectedPlatform(null)
       setUrl('')
       setCopySuccess(false)
+      setIsSuccess(false)
     }
   }, [isOpen])
 
@@ -66,6 +68,7 @@ export default function ShareModal({
         console.log('🔄 Starting verification process...')
         await onVerify(url.trim(), selectedPlatform.id)
         console.log('✅ Verification completed successfully')
+        setIsSuccess(true)
       } catch (error) {
         console.error('❌ Verification failed in modal:', error)
         // Error is already handled by the parent component
@@ -77,6 +80,7 @@ export default function ShareModal({
     setSelectedPlatform(null)
     setUrl('')
     setCopySuccess(false)
+    setIsSuccess(false)
     onClose()
   }
 
@@ -289,25 +293,36 @@ export default function ShareModal({
                 </div>
               )}
 
-              <div className="flex space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedPlatform(null)}
-                  className="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-press-start py-1.5 rounded text-xs transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading || !url.trim()}
-                  className="flex-1 bg-yellow-400 hover:bg-yellow-500 disabled:bg-yellow-400/50 text-black font-press-start py-1.5 rounded text-xs transition-colors font-bold"
-                >
-                  {isLoading ? 'Verifying...' : `Verify & Get ${selectedPlatform.baseReward * selectedPlatform.multiplier} APE`}
-                </button>
-              </div>
+              {isSuccess ? (
+                <div className="text-center py-4">
+                  <div className="text-green-400 font-press-start text-lg mb-2" style={{ textShadow: '1px 1px 0px #000' }}>
+                    ✅ Success!
+                  </div>
+                  <div className="text-yellow-300 font-press-start text-sm" style={{ textShadow: '1px 1px 0px #000' }}>
+                    APE awarded! Share logged for review.
+                  </div>
+                </div>
+              ) : (
+                <div className="flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPlatform(null)}
+                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-press-start py-1.5 rounded text-xs transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isLoading || !url.trim()}
+                    className="flex-1 bg-yellow-400 hover:bg-yellow-500 disabled:bg-yellow-400/50 text-black font-press-start py-1.5 rounded text-xs transition-colors font-bold"
+                  >
+                    {isLoading ? 'Verifying...' : `Verify & Get ${selectedPlatform.baseReward * selectedPlatform.multiplier} APE`}
+                  </button>
+                </div>
+              )}
               
               {/* Fallback for stuck verification */}
-              {isLoading && (
+              {isLoading && !isSuccess && (
                 <div className="mt-2 text-center">
                   <button
                     type="button"

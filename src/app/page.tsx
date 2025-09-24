@@ -192,19 +192,27 @@ function GameApp() {
           
           try {
             await verifyShare(url, platform)
-            console.log('✅ Verification successful, closing modal')
-            setShowShareModal(false)
-            clearShareTrigger()
+            console.log('✅ Verification successful, preparing to close modal')
             
-            // Activate revenge mode if this was a slip share
-            if (shareTrigger?.type === 'slip') {
-              console.log('🔥 Activating revenge mode for slip share')
-              activateRevengeMode()
-            }
+            // Show success message briefly before closing
+            setTimeout(() => {
+              console.log('🎉 Closing modal after successful verification')
+              setIsVerifying(false)
+              setShowShareModal(false)
+              clearShareTrigger()
+              
+              // Activate revenge mode if this was a slip share
+              if (shareTrigger?.type === 'slip') {
+                console.log('🔥 Activating revenge mode for slip share')
+                activateRevengeMode()
+              }
+            }, 1500) // 1.5 second delay to show success
+            
           } catch (error) {
             console.error('❌ Verification failed in main app:', error)
             const errorMessage = error instanceof Error ? error.message : 'Verification failed'
             setVerificationError(errorMessage)
+            setIsVerifying(false)
             
             // Fallback: If it's a timeout error, still close the modal after a delay
             if (errorMessage.includes('timeout')) {
@@ -212,11 +220,8 @@ function GameApp() {
               setTimeout(() => {
                 setShowShareModal(false)
                 clearShareTrigger()
-                setIsVerifying(false)
               }, 3000)
             }
-          } finally {
-            setIsVerifying(false)
           }
         }}
         shareType={shareTrigger?.type || 'manual'}
