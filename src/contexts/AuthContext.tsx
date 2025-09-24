@@ -14,6 +14,7 @@ interface AuthContextType {
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: Error | null }>
   refreshProfile: () => Promise<void>
+  checkUsernameExists: (username: string) => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -145,6 +146,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error details:', JSON.stringify(error, null, 2))
       // Set loading to false even on error to prevent endless loading
       setLoading(false)
+    } finally {
+      // Always set loading to false after profile fetch attempt
+      setLoading(false)
     }
   }
 
@@ -171,6 +175,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!profile) return { error: new Error('No profile found') }
 
+    // If updating username, check if it already exists
+    if (updates.username && updates.username !== profile.username) {
+      const usernameExists = await checkUsernameExists(updates.username)
+      if (usernameExists) {
+        return { error: new Error('Username is already taken') }
+      }
+    }
+
     const { error } = await supabase
       .from('profiles')
       .update(updates)
@@ -181,6 +193,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     return { error }
+  }
+
+  const checkUsernameExists = async (username: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .single()
+
+      if (error && error.code === 'PGRST116') {
+        // No profile found with this username
+        return false
+      }
+
+      if (error) {
+        console.error('Error checking username:', error)
+        return false
+      }
+
+      // Username exists
+      return !!data
+    } catch (error) {
+      console.error('Error in checkUsernameExists:', error)
+      return false
+    }
   }
 
   const refreshProfile = async () => {
@@ -214,7 +252,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
     updateProfile,
-    refreshProfile
+    refreshProfile,
+    checkUsernameExists
   }
 
   return (

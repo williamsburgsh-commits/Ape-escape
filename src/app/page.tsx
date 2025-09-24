@@ -42,7 +42,7 @@ function GameApp() {
     if (loading) {
       const timeout = setTimeout(() => {
         setLoadingTimeout(true)
-      }, 15000) // 15 second timeout
+      }, 10000) // 10 second timeout
 
       return () => clearTimeout(timeout)
     } else {
@@ -50,19 +50,24 @@ function GameApp() {
     }
   }, [loading])
 
+  // Show loading screen while checking authentication and profile
   if (loading && !loadingTimeout) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 to-indigo-600">
         <div className="text-center">
           <span className="text-6xl mb-4 block animate-bounce">🦍</span>
-          <div className="text-yellow-400 font-press-start text-lg">
+          <div className="text-yellow-400 font-press-start text-lg mb-2">
             Loading APE ESCAPE...
+          </div>
+          <div className="text-yellow-300 font-press-start text-sm">
+            Checking your profile...
           </div>
         </div>
       </div>
     )
   }
 
+  // Show timeout screen if loading takes too long
   if (loadingTimeout) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 to-indigo-600">
@@ -85,6 +90,10 @@ function GameApp() {
     )
   }
 
+  // Authentication flow:
+  // 1. If no user: show login form
+  // 2. If user but no profile/username: show username selection
+  // 3. If user and profile with username: show game
   if (!user) {
     return <LoginForm />
   }

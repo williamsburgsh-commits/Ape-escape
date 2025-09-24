@@ -7,7 +7,7 @@ export default function UsernameSelection() {
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { updateProfile } = useAuth()
+  const { updateProfile, signOut } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,14 +32,21 @@ export default function UsernameSelection() {
       return
     }
 
+    // Check for invalid characters
+    if (!/^[a-zA-Z0-9_-]+$/.test(username.trim())) {
+      setError('Username can only contain letters, numbers, underscores, and hyphens')
+      setLoading(false)
+      return
+    }
+
     try {
       console.log('Attempting to update profile with username:', username.trim())
       const { error } = await updateProfile({ username: username.trim() })
       
       if (error) {
         console.error('Error updating profile:', error)
-        if (error.message.includes('duplicate') || error.message.includes('unique')) {
-          setError('Username is already taken')
+        if (error.message.includes('already taken') || error.message.includes('duplicate') || error.message.includes('unique')) {
+          setError('Username is already taken. Please choose a different one.')
         } else if (error.message.includes('No profile found')) {
           setError('Profile not found. Please try refreshing the page.')
         } else {
@@ -58,6 +65,14 @@ export default function UsernameSelection() {
     }
   }
 
+  const handleBack = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 to-indigo-600">
       <div className="bg-black/30 backdrop-blur-sm border-2 border-yellow-400 rounded-lg p-8 w-full max-w-md">
@@ -69,6 +84,18 @@ export default function UsernameSelection() {
           <p className="text-yellow-300 font-press-start text-sm">
             This will be your display name in the game
           </p>
+        </div>
+
+        {/* Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={handleBack}
+            disabled={loading}
+            className="flex items-center text-yellow-400 hover:text-yellow-300 font-press-start text-sm transition-colors disabled:opacity-50"
+          >
+            <span className="mr-2">←</span>
+            Back to Sign In
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
