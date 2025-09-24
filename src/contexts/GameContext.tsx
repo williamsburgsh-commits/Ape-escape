@@ -26,7 +26,7 @@ interface GameContextType {
   clearShareTrigger: () => void
   shareToPlatform: (platform: { id: string; name: string }, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
   verifyShare: (url: string, platform: string) => Promise<void>
-  getShareStats: () => Promise<{ dailyShares: number; cooldowns: Record<string, boolean>; totalShares: number; totalApeEarned: number }>
+  getShareStats: () => Promise<{ dailyShares: number; cooldowns: Record<string, boolean>; cooldownTimes: Record<string, number>; totalShares: number; totalApeEarned: number }>
   getShareMessage: (type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => string
 }
 
@@ -576,9 +576,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [gameState.sessionActiveTime, addGameMessage])
 
   // Get share stats function
-  const getShareStats = useCallback(async (): Promise<{ dailyShares: number; cooldowns: Record<string, boolean>; totalShares: number; totalApeEarned: number }> => {
+  const getShareStats = useCallback(async (): Promise<{ dailyShares: number; cooldowns: Record<string, boolean>; cooldownTimes: Record<string, number>; totalShares: number; totalApeEarned: number }> => {
     if (!user || !isOnline) {
-      return { dailyShares: 0, cooldowns: {}, totalShares: 0, totalApeEarned: 0 }
+      return { dailyShares: 0, cooldowns: {}, cooldownTimes: {}, totalShares: 0, totalApeEarned: 0 }
     }
 
     try {
@@ -587,10 +587,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       })
 
       if (error) throw error
-      return data || { dailyShares: 0, cooldowns: {}, totalShares: 0, totalApeEarned: 0 }
+      return data || { dailyShares: 0, cooldowns: {}, cooldownTimes: {}, totalShares: 0, totalApeEarned: 0 }
     } catch (error) {
       console.error('Failed to get share stats:', error)
-      return { dailyShares: 0, cooldowns: {}, totalShares: 0, totalApeEarned: 0 }
+      return { dailyShares: 0, cooldowns: {}, cooldownTimes: {}, totalShares: 0, totalApeEarned: 0 }
     }
   }, [user, isOnline])
 
