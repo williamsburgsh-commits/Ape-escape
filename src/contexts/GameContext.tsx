@@ -886,47 +886,105 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     console.log('✅ Platform URL validation passed')
 
     try {
-      console.log('🚀 Calling award_share_ape RPC function...')
+      console.log('🚀 Starting share verification process...')
       
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Verification timeout - please try again')), 10000)
-      })
-
-      const rpcPromise = supabase.rpc('award_share_ape', {
-        p_user_id: user.id,
-        p_platform: platform,
-        p_url: url.trim()
-      })
-
-      const result = await Promise.race([rpcPromise, timeoutPromise]) as { data: number | null; error: { message: string } | null }
-      const { data, error } = result
-
-      console.log('📊 RPC response:', { data, error })
-
-      if (error) {
-        console.error('❌ RPC error:', error)
-        throw new Error(error.message || 'Database error occurred')
+      // Calculate APE reward based on platform
+      let apeReward = 0
+      switch (platform) {
+        case 'tiktok':
+          apeReward = 45 // 3x multiplier
+          break
+        case 'twitter':
+          apeReward = 30 // 2x multiplier
+          break
+        case 'instagram':
+          apeReward = 22 // 1.5x multiplier
+          break
+        default:
+          apeReward = 0
       }
 
-      const apeAwarded = data || 0
-      console.log('✅ APE awarded:', apeAwarded)
-      
-      if (apeAwarded > 0) {
-        addGameMessage(`Share verified! +${apeAwarded} APE earned! 🎉`, 'stage-up')
-        
-        // Update local APE balance
-        dispatch({ type: 'ADD_APE', payload: apeAwarded })
-        
-        // Sync with server (don't await to prevent hanging)
-        syncGameState().catch(err => {
-          console.error('Failed to sync game state:', err)
-          addGameMessage('Share verified but sync failed - refresh to update balance', 'info')
+      console.log('💰 Calculated APE reward:', apeReward)
+
+      // Try RPC function first (if it exists)
+      try {
+        console.log('🔄 Attempting RPC function...')
+        const { data, error } = await supabase.rpc('award_share_ape', {
+          p_user_id: user.id,
+          p_platform: platform,
+          p_url: url.trim()
         })
-      } else {
-        console.log('⚠️ No APE awarded - possible duplicate or limit reached')
-        addGameMessage('Share logged but no APE awarded - check daily limits', 'info')
+
+        if (error) {
+          console.log('⚠️ RPC function failed, using fallback method:', error.message)
+          throw new Error('RPC_NOT_AVAILABLE')
+        }
+
+        const apeAwarded = data || 0
+        console.log('✅ RPC function succeeded, APE awarded:', apeAwarded)
+        
+        if (apeAwarded > 0) {
+          addGameMessage(`Share verified! +${apeAwarded} APE earned! 🎉`, 'stage-up')
+          dispatch({ type: 'ADD_APE', payload: apeAwarded })
+        } else {
+          addGameMessage('Share logged but no APE awarded - check daily limits', 'info')
+        }
+
+      } catch (rpcError) {
+        console.log('🔄 RPC function not available, using fallback method:', rpcError instanceof Error ? rpcError.message : 'Unknown error')
+        
+        // Fallback: Direct database operations
+        console.log('📝 Logging share to database...')
+        
+        // Insert share record
+        const { error: insertError } = await supabase
+          .from('shares_log')
+          .insert({
+            user_id: user.id,
+            platform: platform,
+            url: url.trim(),
+            ape_awarded: apeReward
+          })
+
+        if (insertError) {
+          console.error('❌ Failed to insert share record:', insertError)
+          // Check if it's a duplicate URL error
+          if (insertError.message.includes('duplicate') || insertError.message.includes('unique')) {
+            throw new Error('URL already used - try a different post')
+          }
+          throw new Error('Failed to log share - please try again')
+        }
+
+        console.log('✅ Share logged successfully')
+
+        // Update user's APE balance
+        if (apeReward > 0) {
+          console.log('💰 Updating APE balance...')
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ 
+              ape_balance: user.ape_balance + apeReward 
+            })
+            .eq('id', user.id)
+
+          if (updateError) {
+            console.error('❌ Failed to update APE balance:', updateError)
+            addGameMessage('Share logged but APE update failed - refresh to see balance', 'info')
+          } else {
+            console.log('✅ APE balance updated successfully')
+            addGameMessage(`Share verified! +${apeReward} APE earned! 🎉`, 'stage-up')
+            dispatch({ type: 'ADD_APE', payload: apeReward })
+          }
+        } else {
+          addGameMessage('Share logged successfully! 📝', 'info')
+        }
       }
+
+      // Sync with server (non-blocking)
+      syncGameState().catch(err => {
+        console.error('Failed to sync game state:', err)
+        addGameMessage('Share verified but sync failed - refresh to update balance', 'info')
+      })
 
     } catch (error) {
       console.error('❌ Failed to verify share:', error)
