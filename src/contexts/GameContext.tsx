@@ -26,7 +26,7 @@ interface GameContextType {
   clearShareTrigger: () => void
   shareToPlatform: (platform: { id: string; name: string }, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
   verifyShare: (url: string, platform: string) => Promise<void>
-  getShareStats: () => Promise<{ dailyShares: number; cooldowns: Record<string, boolean> }>
+  getShareStats: () => Promise<{ dailyShares: number; cooldowns: Record<string, boolean>; totalShares: number; totalApeEarned: number }>
   getShareMessage: (type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => string
 }
 
@@ -575,6 +575,46 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [gameState.sessionActiveTime, addGameMessage])
 
+  // Get share stats function
+  const getShareStats = useCallback(async (): Promise<{ dailyShares: number; cooldowns: Record<string, boolean>; totalShares: number; totalApeEarned: number }> => {
+    if (!user || !isOnline) {
+      return { dailyShares: 0, cooldowns: {}, totalShares: 0, totalApeEarned: 0 }
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('get_user_share_stats', {
+        p_user_id: user.id
+      })
+
+      if (error) throw error
+      return data || { dailyShares: 0, cooldowns: {}, totalShares: 0, totalApeEarned: 0 }
+    } catch (error) {
+      console.error('Failed to get share stats:', error)
+      return { dailyShares: 0, cooldowns: {}, totalShares: 0, totalApeEarned: 0 }
+    }
+  }, [user, isOnline])
+
+  // Share trigger functions with daily limit check
+  const triggerShare = useCallback(async (type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
+    if (!user || !isOnline) {
+      addGameMessage("Must be online to share! 🌐", 'info')
+      return
+    }
+
+    try {
+      // Check daily share limit
+      const stats = await getShareStats()
+      if (stats.dailyShares >= 3) {
+        addGameMessage("Daily share limit reached (3/3). Try again tomorrow! 🚫", 'info')
+        return
+      }
+
+      setShareTrigger({ type, milestoneStage })
+    } catch (error) {
+      console.error('Failed to check share stats:', error)
+      addGameMessage("Failed to check share status. Try again later! ⚠️", 'info')
+    }
+  }, [user, isOnline, getShareStats, addGameMessage])
 
   const handleTap = useCallback(async () => {
     const now = Date.now()
@@ -662,7 +702,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (isOnline && user) {
       syncGameState()
     }
-  }, [gameState, user, isOnline, addGameMessage, syncGameState])
+  }, [gameState, user, isOnline, addGameMessage, syncGameState, triggerShare])
 
   const buyInsurance = useCallback(() => {
     if (gameState.apeBalance >= APE_SPENDING.SLIP_INSURANCE && !gameState.insuranceActive) {
@@ -795,14 +835,102 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }, REVENGE_MODE.DURATION)
   }, [addGameMessage])
 
-  // Share trigger functions
-  const triggerShare = useCallback((type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
-    setShareTrigger({ type, milestoneStage })
-  }, [])
+  // Share message generation
+  const getShareMessage = useCallback((type: 'slip' | 'milestone' | 'manual', milestoneStage?: number): string => {
+    const baseUrl = 'https://ape-escape.vercel.app'
+    const referralCode = user?.referral_code || 'APE12345'
+    const referralLink = `${baseUrl}?ref=${referralCode}`
+    
+    const slipMessages = [
+      `Just slipped in APE ESCAPE! 😅 The ape forgot how to ape! Join me and let's escape together! ${referralLink}`,
+      `Whoops! Stepped on a banana peel in APE ESCAPE! 🍌 This game is wild! Try it: ${referralLink}`,
+      `Gravity wins this round in APE ESCAPE! 🦍 But I'm not giving up! Join the escape: ${referralLink}`,
+      `The ape slipped again! 🤪 APE ESCAPE is addictive! Come help me escape: ${referralLink}`,
+      `Another slip in APE ESCAPE! 😂 This game is harder than it looks! Try it: ${referralLink}`
+    ]
+    
+    const milestoneMessages = [
+      `Just reached Stage ${milestoneStage} in APE ESCAPE! 🎉 The ape is evolving! Join me: ${referralLink}`,
+      `Stage ${milestoneStage} unlocked! 🏆 APE ESCAPE is getting intense! Try it: ${referralLink}`,
+      `Evolved to Stage ${milestoneStage}! 🦍 APE ESCAPE is amazing! Come play: ${referralLink}`,
+      `Stage ${milestoneStage} achieved! 🎯 APE ESCAPE keeps getting better! Join: ${referralLink}`,
+      `Reached Stage ${milestoneStage}! 🚀 APE ESCAPE is the best game! Try it: ${referralLink}`
+    ]
+    
+    const manualMessages = [
+      `Playing APE ESCAPE and loving it! 🦍 Join me in this addictive game: ${referralLink}`,
+      `APE ESCAPE is so fun! 🎮 The ape needs to escape! Try it: ${referralLink}`,
+      `This APE ESCAPE game is incredible! 🏆 Come help the ape escape: ${referralLink}`,
+      `APE ESCAPE is the best game I've played! 🎯 Join me: ${referralLink}`,
+      `You have to try APE ESCAPE! 🦍 It's so addictive! Play now: ${referralLink}`
+    ]
+    
+    switch (type) {
+      case 'slip':
+        return slipMessages[Math.floor(Math.random() * slipMessages.length)]
+      case 'milestone':
+        return milestoneMessages[Math.floor(Math.random() * milestoneMessages.length)]
+      case 'manual':
+        return manualMessages[Math.floor(Math.random() * manualMessages.length)]
+      default:
+        return manualMessages[0]
+    }
+  }, [user?.referral_code])
 
   const clearShareTrigger = useCallback(() => {
     setShareTrigger(null)
   }, [])
+
+  // Share verification function
+  const verifyShare = useCallback(async (url: string, platform: string): Promise<void> => {
+    if (!user || !isOnline) {
+      throw new Error('Must be online to verify shares')
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('award_share_ape', {
+        p_user_id: user.id,
+        p_platform: platform,
+        p_url: url
+      })
+
+      if (error) throw error
+
+      // Update local APE balance
+      dispatch({ type: 'ADD_APE', payload: data })
+      addGameMessage(`Share verified! +${data} APE earned! 🎉`, 'stage-up')
+    } catch (error) {
+      console.error('Share verification failed:', error)
+      throw error
+    }
+  }, [user, isOnline, addGameMessage])
+
+  // Share to platform function (for external sharing)
+  const shareToPlatform = useCallback((platform: { id: string; name: string }, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
+    const message = getShareMessage(shareType, milestoneStage)
+    const encodedMessage = encodeURIComponent(message)
+    
+    let shareUrl = ''
+    switch (platform.id) {
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodedMessage}`
+        break
+      case 'tiktok':
+        // TikTok doesn't have direct URL sharing, so we'll copy to clipboard
+        navigator.clipboard.writeText(message)
+        addGameMessage('Message copied to clipboard! Paste it in TikTok! 📋', 'info')
+        return
+      case 'instagram':
+        // Instagram doesn't have direct URL sharing, so we'll copy to clipboard
+        navigator.clipboard.writeText(message)
+        addGameMessage('Message copied to clipboard! Paste it in Instagram! 📋', 'info')
+        return
+    }
+    
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400')
+    }
+  }, [getShareMessage, addGameMessage])
 
 
 
@@ -828,10 +956,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     shareTrigger,
     triggerShare,
     clearShareTrigger,
-    shareToPlatform: () => {},
-    verifyShare: async () => {},
-    getShareStats: async () => ({ dailyShares: 0, cooldowns: {} }),
-    getShareMessage: () => ''
+    shareToPlatform,
+    verifyShare,
+    getShareStats,
+    getShareMessage
   }
 
   return (

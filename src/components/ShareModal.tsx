@@ -54,9 +54,9 @@ export default function ShareModal({
   isOpen,
   onClose,
   onVerify,
-  shareToPlatform,
+  shareToPlatform: _shareToPlatform,
   shareType,
-  milestoneStage,
+  milestoneStage: _milestoneStage,
   shareMessage,
   isLoading = false,
   error = null

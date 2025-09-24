@@ -5,7 +5,7 @@ import { useGame } from '@/contexts/GameContext'
 import { STAGE_FORMULA } from '@/types/game'
 
 export default function GameArea() {
-  const { gameState, handleTap, gameMessages, buyInsurance, resetRugMeter } = useGame()
+  const { gameState, handleTap, gameMessages, buyInsurance, resetRugMeter, triggerShare } = useGame()
   const [isAnimating, setIsAnimating] = useState(false)
 
   const tapsToNextStage = STAGE_FORMULA(gameState.currentStage)
@@ -127,6 +127,16 @@ export default function GameArea() {
               }`}
             >
               Reset Risk (50 APE)
+            </button>
+          </div>
+
+          {/* Manual Share Button */}
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={() => triggerShare('manual')}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded font-press-start text-sm transition-colors"
+            >
+              📱 Share APE ESCAPE
             </button>
           </div>
         </div>
