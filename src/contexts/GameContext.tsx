@@ -838,13 +838,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [getShareMessage, addGameMessage])
 
   const verifyShare = useCallback(async (url: string, platform: string) => {
+    console.log('🔍 Starting share verification:', { url, platform, userId: user?.id })
+    
     if (!user || !isOnline) {
+      console.log('❌ User not authenticated or offline')
       addGameMessage("Must be online to verify shares! 🌐", 'info')
       return
     }
 
     // Basic URL validation
     if (!url || !url.trim()) {
+      console.log('❌ Empty URL provided')
       throw new Error('URL cannot be empty')
     }
 
@@ -852,51 +856,80 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     let parsedUrl: URL
     try {
       parsedUrl = new URL(url)
+      console.log('✅ URL format valid:', parsedUrl.hostname)
     } catch {
+      console.log('❌ Invalid URL format')
       throw new Error('Invalid URL format')
     }
 
     // Platform-specific URL validation
     const hostname = parsedUrl.hostname.toLowerCase()
+    console.log('🔍 Validating platform URL:', { hostname, platform })
     
     if (platform === 'twitter') {
       if (!hostname.includes('twitter.com') && !hostname.includes('x.com')) {
+        console.log('❌ Invalid Twitter URL')
         throw new Error('URL must be from Twitter/X (twitter.com or x.com)')
       }
     } else if (platform === 'tiktok') {
       if (!hostname.includes('tiktok.com')) {
+        console.log('❌ Invalid TikTok URL')
         throw new Error('URL must be from TikTok (tiktok.com)')
       }
     } else if (platform === 'instagram') {
       if (!hostname.includes('instagram.com')) {
+        console.log('❌ Invalid Instagram URL')
         throw new Error('URL must be from Instagram (instagram.com)')
       }
     }
 
+    console.log('✅ Platform URL validation passed')
+
     try {
-      // Call the server-side function to verify and award APE
-      const { data, error } = await supabase.rpc('award_share_ape', {
+      console.log('🚀 Calling award_share_ape RPC function...')
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Verification timeout - please try again')), 10000)
+      })
+
+      const rpcPromise = supabase.rpc('award_share_ape', {
         p_user_id: user.id,
         p_platform: platform,
         p_url: url.trim()
       })
 
+      const result = await Promise.race([rpcPromise, timeoutPromise]) as { data: number | null; error: { message: string } | null }
+      const { data, error } = result
+
+      console.log('📊 RPC response:', { data, error })
+
       if (error) {
-        console.error('Error verifying share:', error)
-        throw new Error(error.message)
+        console.error('❌ RPC error:', error)
+        throw new Error(error.message || 'Database error occurred')
       }
 
       const apeAwarded = data || 0
-      addGameMessage(`Share verified! +${apeAwarded} APE earned! 🎉`, 'stage-up')
+      console.log('✅ APE awarded:', apeAwarded)
       
-      // Update local APE balance
-      dispatch({ type: 'ADD_APE', payload: apeAwarded })
-      
-      // Sync with server
-      await syncGameState()
+      if (apeAwarded > 0) {
+        addGameMessage(`Share verified! +${apeAwarded} APE earned! 🎉`, 'stage-up')
+        
+        // Update local APE balance
+        dispatch({ type: 'ADD_APE', payload: apeAwarded })
+        
+        // Sync with server (don't await to prevent hanging)
+        syncGameState().catch(err => {
+          console.error('Failed to sync game state:', err)
+          addGameMessage('Share verified but sync failed - refresh to update balance', 'info')
+        })
+      } else {
+        console.log('⚠️ No APE awarded - possible duplicate or limit reached')
+        addGameMessage('Share logged but no APE awarded - check daily limits', 'info')
+      }
 
     } catch (error) {
-      console.error('Failed to verify share:', error)
+      console.error('❌ Failed to verify share:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to verify share'
       addGameMessage(`Verification failed: ${errorMessage} ⚠️`, 'info')
       throw error

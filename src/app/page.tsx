@@ -186,19 +186,35 @@ function GameApp() {
         }}
         shareToPlatform={shareToPlatform}
         onVerify={async (url, platform) => {
+          console.log('🎯 Starting verification in main app:', { url, platform })
           setIsVerifying(true)
           setVerificationError(null)
+          
           try {
             await verifyShare(url, platform)
+            console.log('✅ Verification successful, closing modal')
             setShowShareModal(false)
             clearShareTrigger()
             
             // Activate revenge mode if this was a slip share
             if (shareTrigger?.type === 'slip') {
+              console.log('🔥 Activating revenge mode for slip share')
               activateRevengeMode()
             }
           } catch (error) {
-            setVerificationError(error instanceof Error ? error.message : 'Verification failed')
+            console.error('❌ Verification failed in main app:', error)
+            const errorMessage = error instanceof Error ? error.message : 'Verification failed'
+            setVerificationError(errorMessage)
+            
+            // Fallback: If it's a timeout error, still close the modal after a delay
+            if (errorMessage.includes('timeout')) {
+              console.log('⏰ Timeout detected, closing modal after delay')
+              setTimeout(() => {
+                setShowShareModal(false)
+                clearShareTrigger()
+                setIsVerifying(false)
+              }, 3000)
+            }
           } finally {
             setIsVerifying(false)
           }

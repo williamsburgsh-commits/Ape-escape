@@ -62,7 +62,14 @@ export default function ShareModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (url.trim() && selectedPlatform) {
-      await onVerify(url.trim(), selectedPlatform.id)
+      try {
+        console.log('🔄 Starting verification process...')
+        await onVerify(url.trim(), selectedPlatform.id)
+        console.log('✅ Verification completed successfully')
+      } catch (error) {
+        console.error('❌ Verification failed in modal:', error)
+        // Error is already handled by the parent component
+      }
     }
   }
 
@@ -298,6 +305,22 @@ export default function ShareModal({
                   {isLoading ? 'Verifying...' : `Verify & Get ${selectedPlatform.baseReward * selectedPlatform.multiplier} APE`}
                 </button>
               </div>
+              
+              {/* Fallback for stuck verification */}
+              {isLoading && (
+                <div className="mt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      console.log('🆘 Manual fallback triggered - closing modal')
+                      onClose()
+                    }}
+                    className="text-yellow-300 hover:text-yellow-200 font-press-start text-xs underline"
+                  >
+                    Verification taking too long? Click here to close
+                  </button>
+                </div>
+              )}
             </form>
           </>
         )}
