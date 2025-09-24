@@ -45,7 +45,15 @@ export default function Header() {
                 {profile?.username || user.email}
               </span>
               <button
-                onClick={signOut}
+                onClick={async () => {
+                  try {
+                    await signOut()
+                  } catch (error) {
+                    console.error('Error signing out:', error)
+                    // Force reload if sign out fails
+                    window.location.reload()
+                  }
+                }}
                 className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded font-press-start text-sm transition-colors"
               >
                 Exit

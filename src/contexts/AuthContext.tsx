@@ -49,10 +49,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         if (!isMounted) return
         
+        console.log('Auth state change:', event, session?.user?.id)
         setUser(session?.user ?? null)
         if (session?.user) {
           await fetchProfile(session.user.id)
         } else {
+          console.log('No user in session, clearing profile')
           setProfile(null)
           setLoading(false)
         }
@@ -169,7 +171,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      console.log('Signing out user...')
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('Error signing out:', error)
+        throw error
+      }
+      
+      // Clear local state immediately
+      setUser(null)
+      setProfile(null)
+      setLoading(false)
+      
+      console.log('User signed out successfully')
+    } catch (error) {
+      console.error('Error in signOut:', error)
+      // Even if there's an error, clear local state
+      setUser(null)
+      setProfile(null)
+      setLoading(false)
+    }
   }
 
   const updateProfile = async (updates: Partial<UserProfile>) => {

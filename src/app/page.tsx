@@ -91,13 +91,32 @@ function GameApp() {
 
   // Authentication flow:
   // 1. If no user: show login form
-  // 2. If user but no profile/username: show username selection
-  // 3. If user and profile with username: show game
+  // 2. If user but no profile: still loading (wait for profile to load)
+  // 3. If user and profile but no username: show username selection
+  // 4. If user and profile with username: show game
   if (!user) {
     return <LoginForm />
   }
 
-  if (!profile?.username) {
+  // If user exists but no profile yet, still loading
+  if (user && !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 to-indigo-600">
+        <div className="text-center">
+          <span className="text-6xl mb-4 block animate-bounce">🦍</span>
+          <div className="text-yellow-400 font-press-start text-lg mb-2">
+            Loading APE ESCAPE...
+          </div>
+          <div className="text-yellow-300 font-press-start text-sm">
+            Loading your profile...
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // If user and profile exist but no username, show username selection
+  if (user && profile && !profile.username) {
     return <UsernameSelection />
   }
 

@@ -67,9 +67,14 @@ export default function UsernameSelection() {
 
   const handleBack = async () => {
     try {
+      setLoading(true)
       await signOut()
+      // The AuthContext will handle the state changes and redirect
     } catch (error) {
       console.error('Error signing out:', error)
+      setError('Failed to sign out. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
