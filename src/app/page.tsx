@@ -186,42 +186,27 @@ function GameApp() {
         }}
         shareToPlatform={shareToPlatform}
         onVerify={async (url, platform) => {
-          console.log('🎯 Starting verification in main app:', { url, platform })
+          console.log('🎯 Starting simple verification:', { url, platform })
           setIsVerifying(true)
           setVerificationError(null)
           
           try {
             await verifyShare(url, platform)
-            console.log('✅ Verification successful, preparing to close modal')
+            console.log('✅ Verification completed successfully')
             
-            // Show success message briefly before closing
-            setTimeout(() => {
-              console.log('🎉 Closing modal after successful verification')
-              setIsVerifying(false)
-              setShowShareModal(false)
-              clearShareTrigger()
-              
-              // Activate revenge mode if this was a slip share
-              if (shareTrigger?.type === 'slip') {
-                console.log('🔥 Activating revenge mode for slip share')
-                activateRevengeMode()
-              }
-            }, 1500) // 1.5 second delay to show success
+            // Activate revenge mode if this was a slip share
+            if (shareTrigger?.type === 'slip') {
+              console.log('🔥 Activating revenge mode for slip share')
+              activateRevengeMode()
+            }
             
           } catch (error) {
-            console.error('❌ Verification failed in main app:', error)
+            console.error('❌ Verification failed:', error)
             const errorMessage = error instanceof Error ? error.message : 'Verification failed'
             setVerificationError(errorMessage)
+            throw error // Re-throw so ShareModal can handle it
+          } finally {
             setIsVerifying(false)
-            
-            // Fallback: If it's a timeout error, still close the modal after a delay
-            if (errorMessage.includes('timeout')) {
-              console.log('⏰ Timeout detected, closing modal after delay')
-              setTimeout(() => {
-                setShowShareModal(false)
-                clearShareTrigger()
-              }, 3000)
-            }
           }
         }}
         shareType={shareTrigger?.type || 'manual'}

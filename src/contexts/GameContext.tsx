@@ -838,142 +838,84 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [getShareMessage, addGameMessage])
 
   const verifyShare = useCallback(async (url: string, platform: string) => {
-    console.log('🔍 Starting share verification:', { url, platform, userId: user?.id })
+    console.log('🚀 Starting simple share verification:', { url, platform, userId: user?.id })
     
-    if (!user || !isOnline) {
-      console.log('❌ User not authenticated or offline')
-      addGameMessage("Must be online to verify shares! 🌐", 'info')
-      return
+    if (!user) {
+      console.log('❌ User not authenticated')
+      throw new Error('Must be logged in to verify shares')
     }
 
-    // Basic URL validation
     if (!url || !url.trim()) {
       console.log('❌ Empty URL provided')
-      throw new Error('URL cannot be empty')
+      throw new Error('Please enter a URL')
     }
 
-    // Validate URL format
-    let parsedUrl: URL
-    try {
-      parsedUrl = new URL(url)
-      console.log('✅ URL format valid:', parsedUrl.hostname)
-    } catch {
-      console.log('❌ Invalid URL format')
-      throw new Error('Invalid URL format')
+    // Calculate APE reward based on platform
+    let apeReward = 0
+    switch (platform) {
+      case 'tiktok':
+        apeReward = 45 // 3x multiplier
+        break
+      case 'twitter':
+        apeReward = 30 // 2x multiplier
+        break
+      case 'instagram':
+        apeReward = 22 // 1.5x multiplier
+        break
+      default:
+        apeReward = 0
     }
 
-    // Platform-specific URL validation
-    const hostname = parsedUrl.hostname.toLowerCase()
-    console.log('🔍 Validating platform URL:', { hostname, platform })
-    
-    if (platform === 'twitter') {
-      if (!hostname.includes('twitter.com') && !hostname.includes('x.com')) {
-        console.log('❌ Invalid Twitter URL')
-        throw new Error('URL must be from Twitter/X (twitter.com or x.com)')
-      }
-    } else if (platform === 'tiktok') {
-      if (!hostname.includes('tiktok.com')) {
-        console.log('❌ Invalid TikTok URL')
-        throw new Error('URL must be from TikTok (tiktok.com)')
-      }
-    } else if (platform === 'instagram') {
-      if (!hostname.includes('instagram.com')) {
-        console.log('❌ Invalid Instagram URL')
-        throw new Error('URL must be from Instagram (instagram.com)')
-      }
-    }
-
-    console.log('✅ Platform URL validation passed')
+    console.log('💰 APE reward calculated:', apeReward)
 
     try {
-      console.log('🚀 Starting share verification process...')
-      
-      // Calculate APE reward based on platform
-      let apeReward = 0
-      switch (platform) {
-        case 'tiktok':
-          apeReward = 45 // 3x multiplier
-          break
-        case 'twitter':
-          apeReward = 30 // 2x multiplier
-          break
-        case 'instagram':
-          apeReward = 22 // 1.5x multiplier
-          break
-        default:
-          apeReward = 0
+      // Save to shares_log table (simple insert)
+      console.log('📝 Saving share to database...')
+      const { error: insertError } = await supabase
+        .from('shares_log')
+        .insert({
+          user_id: user.id,
+          platform: platform,
+          url: url.trim(),
+          ape_awarded: apeReward,
+          status: 'pending_review',
+          created_at: new Date().toISOString()
+        })
+
+      if (insertError) {
+        console.log('⚠️ Share logging failed, but continuing:', insertError.message)
+      } else {
+        console.log('✅ Share saved successfully')
       }
 
-      console.log('💰 Calculated APE reward:', apeReward)
-
-      // Use direct database operations (RPC function not available)
-      console.log('📝 Logging share to database...')
-      
-      // Try to insert share record, but don't fail if table doesn't exist
-      try {
-        const { error: insertError } = await supabase
-          .from('shares_log')
-          .insert({
-            user_id: user.id,
-            platform: platform,
-            url: url.trim(),
-            ape_awarded: apeReward
-          })
-
-        if (insertError) {
-          console.error('❌ Failed to insert share record:', insertError)
-          // Check if it's a duplicate URL error
-          if (insertError.message.includes('duplicate') || insertError.message.includes('unique')) {
-            throw new Error('URL already used - try a different post')
-          }
-          // If shares_log table doesn't exist, continue without logging
-          if (insertError.message.includes('relation "shares_log" does not exist')) {
-            console.log('⚠️ shares_log table not found, continuing without logging...')
-          } else {
-            console.log('⚠️ Share logging failed, but continuing with APE award:', insertError.message)
-          }
-        } else {
-          console.log('✅ Share logged successfully')
-        }
-      } catch (logError) {
-        console.log('⚠️ Share logging failed, but continuing with APE award:', logError)
-      }
-
-      // Always update APE balance regardless of share logging
+      // Update user APE balance immediately
       if (apeReward > 0) {
         console.log('💰 Updating APE balance...')
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ 
-            ape_balance: user.ape_balance + apeReward 
+          .update({
+            ape_balance: user.ape_balance + apeReward
           })
           .eq('id', user.id)
 
         if (updateError) {
           console.error('❌ Failed to update APE balance:', updateError)
-          addGameMessage('Share verified but APE update failed - refresh to see balance', 'info')
+          throw new Error('Failed to update APE balance')
         } else {
           console.log('✅ APE balance updated successfully')
-          addGameMessage(`Share verified! +${apeReward} APE earned! 🎉`, 'stage-up')
+          // Update local state immediately
           dispatch({ type: 'ADD_APE', payload: apeReward })
+          addGameMessage(`+${apeReward} APE earned! 🎉`, 'stage-up')
         }
-      } else {
-        addGameMessage('Share verified successfully! 📝', 'info')
       }
 
-      // Sync with server (non-blocking)
-      syncGameState().catch(err => {
-        console.error('Failed to sync game state:', err)
-        addGameMessage('Share verified but sync failed - refresh to update balance', 'info')
-      })
-
+      console.log('✅ Share verification completed successfully')
+      
     } catch (error) {
-      console.error('❌ Failed to verify share:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to verify share'
-      addGameMessage(`Verification failed: ${errorMessage} ⚠️`, 'info')
+      console.error('❌ Share verification failed:', error)
       throw error
     }
-  }, [user, isOnline, addGameMessage, syncGameState])
+  }, [user, addGameMessage, dispatch])
 
   const getShareStats = useCallback(async () => {
     if (!user || !isOnline) {

@@ -65,13 +65,19 @@ export default function ShareModal({
     e.preventDefault()
     if (url.trim() && selectedPlatform) {
       try {
-        console.log('🔄 Starting verification process...')
+        console.log('🔄 Starting simple verification...')
         await onVerify(url.trim(), selectedPlatform.id)
         console.log('✅ Verification completed successfully')
         setIsSuccess(true)
+        
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          handleClose()
+        }, 2000)
+        
       } catch (error) {
-        console.error('❌ Verification failed in modal:', error)
-        // Error is already handled by the parent component
+        console.error('❌ Verification failed:', error)
+        // Error is handled by parent component
       }
     }
   }
@@ -296,10 +302,10 @@ export default function ShareModal({
               {isSuccess ? (
                 <div className="text-center py-4">
                   <div className="text-green-400 font-press-start text-lg mb-2" style={{ textShadow: '1px 1px 0px #000' }}>
-                    ✅ Success!
+                    ✅ Success! APE Awarded!
                   </div>
                   <div className="text-yellow-300 font-press-start text-sm" style={{ textShadow: '1px 1px 0px #000' }}>
-                    APE awarded! Share logged for review.
+                    Share submitted for review. Closing in 2 seconds...
                   </div>
                 </div>
               ) : (
@@ -317,22 +323,6 @@ export default function ShareModal({
                     className="flex-1 bg-yellow-400 hover:bg-yellow-500 disabled:bg-yellow-400/50 text-black font-press-start py-1.5 rounded text-xs transition-colors font-bold"
                   >
                     {isLoading ? 'Verifying...' : `Verify & Get ${selectedPlatform.baseReward * selectedPlatform.multiplier} APE`}
-                  </button>
-                </div>
-              )}
-              
-              {/* Fallback for stuck verification */}
-              {isLoading && !isSuccess && (
-                <div className="mt-2 text-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      console.log('🆘 Manual fallback triggered - closing modal')
-                      onClose()
-                    }}
-                    className="text-yellow-300 hover:text-yellow-200 font-press-start text-xs underline"
-                  >
-                    Verification taking too long? Click here to close
                   </button>
                 </div>
               )}
