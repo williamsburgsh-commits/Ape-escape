@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { GameState, GameMessage, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES, calculateStageApeReward, calculateSlipCompensation, calculateConsecutiveSlipBonus, getMilestoneReward, APE_EARNINGS, APE_SPENDING, REFERRAL_REWARDS, validateReferralCode, SharePlatform, SHARE_LIMITS, REVENGE_MODE } from '@/types/game'
+import { GameState, GameMessage, SlipMessage, UserProfile, STAGE_FORMULA, RUG_METER_BASE_CHANCE, RUG_METER_MAX_CHANCE, RUG_METER_INCREASE_INTERVAL, RUG_METER_MAX_PROGRESS, getPartialSetback, MAX_TAPS_PER_SECOND, MIN_TAP_INTERVAL, SUSPICIOUS_TAP_RATE, SLIP_MESSAGES, calculateStageApeReward, calculateSlipCompensation, calculateConsecutiveSlipBonus, getMilestoneReward, APE_EARNINGS, APE_SPENDING, REFERRAL_REWARDS, validateReferralCode, REVENGE_MODE } from '@/types/game'
 
 interface GameContextType {
   gameState: GameState
@@ -18,14 +18,6 @@ interface GameContextType {
   resetSessionTime: () => void
   applyReferralCode: (code: string) => Promise<boolean>
   copyReferralCode: () => void
-  // Social sharing functions
-  shareTrigger: { type: 'slip' | 'milestone' | 'manual'; milestoneStage?: number } | null
-  triggerShare: (type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
-  clearShareTrigger: () => void
-  shareToPlatform: (platform: SharePlatform, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => void
-  verifyShare: (url: string, platform: string) => Promise<void>
-  getShareStats: () => Promise<{ dailyShares: number; cooldowns: Record<string, boolean> }>
-  getShareMessage: (type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => string
   // Revenge mode
   activateRevengeMode: () => void
 }
@@ -415,7 +407,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [gameMessages, setGameMessages] = React.useState<GameMessage[]>([])
   const [slipMessages] = React.useState<SlipMessage[]>([])
   const [isOnline, setIsOnline] = React.useState(true)
-  const [shareTrigger, setShareTrigger] = React.useState<{ type: 'slip' | 'milestone' | 'manual'; milestoneStage?: number } | null>(null)
 
   // Load game state from localStorage on mount
   useEffect(() => {
@@ -575,14 +566,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [gameState.sessionActiveTime, addGameMessage])
 
-  // Share trigger functions
-  const triggerShare = useCallback((type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
-    setShareTrigger({ type, milestoneStage })
-  }, [])
-
-  const clearShareTrigger = useCallback(() => {
-    setShareTrigger(null)
-  }, [])
 
   const handleTap = useCallback(async () => {
     const now = Date.now()
@@ -611,10 +594,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const randomMessage = SLIP_MESSAGES[Math.floor(Math.random() * SLIP_MESSAGES.length)]
       addGameMessage(randomMessage, 'slip')
       
-      // Trigger share modal for slip
-      setTimeout(() => {
-        triggerShare('slip')
-      }, 2000)
       
       return
     }
@@ -635,10 +614,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'STAGE_UP' })
       addGameMessage(`Stage Up! Evolved to Stage ${oldStage + 1}! 🎉`, 'stage-up')
       
-      // Trigger share modal for milestone
-      setTimeout(() => {
-        triggerShare('milestone', oldStage + 1)
-      }, 2000)
       
       // Check for stage 10 referral bonus
       if ((oldStage + 1) === 10 && user?.referred_by) {
@@ -670,7 +645,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (isOnline && user) {
       syncGameState()
     }
-  }, [gameState, user, isOnline, addGameMessage, syncGameState, triggerShare])
+  }, [gameState, user, isOnline, addGameMessage, syncGameState])
 
   const buyInsurance = useCallback(() => {
     if (gameState.apeBalance >= APE_SPENDING.SLIP_INSURANCE && !gameState.insuranceActive) {
@@ -788,186 +763,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [user, addGameMessage])
 
 
-  // Generate share messages
-  const getShareMessage = useCallback((type: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
-    const referralCode = user?.referral_code || 'APE123'
-    
-    if (type === 'slip') {
-      const slipMessages = [
-        `Just got RUGGED in APE ESCAPE! 😅 The ape forgot how to ape! 🦍 Play now: apeescapegame.com?ref=${referralCode} #apeescape`,
-        `Whoops! Stepped on a banana peel in APE ESCAPE! 🍌 Time for revenge mode! 🦍 Join me: apeescapegame.com?ref=${referralCode} #apeescape`,
-        `Gravity wins this round in APE ESCAPE! 😂 The climb continues! 🦍 Play: apeescapegame.com?ref=${referralCode} #apeescape`,
-        `Just slipped and fell in APE ESCAPE! 🤪 But I'm getting back up! 🦍 Try it: apeescapegame.com?ref=${referralCode} #apeescape`,
-        `RUGGED again in APE ESCAPE! 😭 This game is brutal! 🦍 Can you do better? apeescapegame.com?ref=${referralCode} #apeescape`
-      ]
-      return slipMessages[Math.floor(Math.random() * slipMessages.length)]
-    } else if (type === 'milestone' && milestoneStage) {
-      const milestoneMessages = [
-        `Reached Stage ${milestoneStage} in APE ESCAPE! 🎉 The evolution continues! 🦍 Join the climb: apeescapegame.com?ref=${referralCode} #apeescape`,
-        `Stage ${milestoneStage} achieved in APE ESCAPE! 🚀 Getting stronger! 🦍 Play now: apeescapegame.com?ref=${referralCode} #apeescape`,
-        `Evolved to Stage ${milestoneStage} in APE ESCAPE! 💪 The ape is unstoppable! 🦍 Try it: apeescapegame.com?ref=${referralCode} #apeescape`,
-        `Stage ${milestoneStage} unlocked in APE ESCAPE! 🔥 The journey continues! 🦍 Join me: apeescapegame.com?ref=${referralCode} #apeescape`,
-        `Reached Stage ${milestoneStage} in APE ESCAPE! 🎯 The climb gets real! 🦍 Play: apeescapegame.com?ref=${referralCode} #apeescape`
-      ]
-      return milestoneMessages[Math.floor(Math.random() * milestoneMessages.length)]
-    } else {
-      const generalMessages = [
-        `Playing APE ESCAPE - the ultimate tap-to-evolve game! 🦍 Can you reach the top? apeescapegame.com?ref=${referralCode} #apeescape`,
-        `APE ESCAPE is addictive! 🦍 Tap, evolve, survive! Join me: apeescapegame.com?ref=${referralCode} #apeescape`,
-        `The most intense tap game ever - APE ESCAPE! 🦍 Will you survive? Play: apeescapegame.com?ref=${referralCode} #apeescape`,
-        `APE ESCAPE: Where every tap matters! 🦍 The climb is real! Try it: apeescapegame.com?ref=${referralCode} #apeescape`,
-        `Join me in APE ESCAPE! 🦍 The ultimate evolution challenge! Play: apeescapegame.com?ref=${referralCode} #apeescape`
-      ]
-      return generalMessages[Math.floor(Math.random() * generalMessages.length)]
-    }
-  }, [user?.referral_code])
 
-  // Social sharing functions
-  const shareToPlatform = useCallback((platform: SharePlatform, shareType: 'slip' | 'milestone' | 'manual', milestoneStage?: number) => {
-    const shareText = getShareMessage(shareType, milestoneStage)
-    
-    if (platform.id === 'twitter') {
-      // Open Twitter with pre-filled tweet
-      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`
-      window.open(twitterUrl, '_blank')
-    } else {
-      // Copy to clipboard for TikTok/Instagram
-      navigator.clipboard.writeText(shareText)
-      addGameMessage(`Caption copied for ${platform.name}! Paste it in your post. 📋`, 'info')
-    }
-  }, [getShareMessage, addGameMessage])
 
-  const verifyShare = useCallback(async (url: string, platform: string) => {
-    console.log('🚀 Starting simple share verification:', { url, platform, userId: user?.id })
-    
-    if (!user) {
-      console.log('❌ User not authenticated')
-      throw new Error('Must be logged in to verify shares')
-    }
-
-    if (!url || !url.trim()) {
-      console.log('❌ Empty URL provided')
-      throw new Error('Please enter a URL')
-    }
-
-    // Calculate APE reward based on platform
-    let apeReward = 0
-    switch (platform) {
-      case 'tiktok':
-        apeReward = 45 // 3x multiplier
-        break
-      case 'twitter':
-        apeReward = 30 // 2x multiplier
-        break
-      case 'instagram':
-        apeReward = 22 // 1.5x multiplier
-        break
-      default:
-        apeReward = 0
-    }
-
-    console.log('💰 APE reward calculated:', apeReward)
-
-    try {
-      // Skip database operations entirely due to Supabase issues
-      console.log('⚠️ Skipping database operations due to Supabase configuration issues')
-      console.log('📝 Share will be logged locally for now')
-      
-      // Store share data in localStorage as backup
-      try {
-        const shareData = {
-          user_id: user.id,
-          platform: platform,
-          url: url.trim(),
-          ape_awarded: apeReward,
-          status: 'pending_review',
-          created_at: new Date().toISOString()
-        }
-        
-        const existingShares = JSON.parse(localStorage.getItem('pending_shares') || '[]')
-        existingShares.push(shareData)
-        localStorage.setItem('pending_shares', JSON.stringify(existingShares))
-        console.log('✅ Share saved to localStorage backup')
-      } catch (localError) {
-        console.log('⚠️ localStorage backup failed:', localError)
-      }
-
-      // Always update APE balance (this should work)
-      if (apeReward > 0) {
-        console.log('💰 Updating APE balance...')
-        try {
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({
-              ape_balance: user.ape_balance + apeReward
-            })
-            .eq('id', user.id)
-
-          if (updateError) {
-            console.error('❌ Failed to update APE balance:', updateError)
-            // Even if database update fails, award APE locally
-            console.log('🔄 Awarding APE locally due to database issues')
-            dispatch({ type: 'ADD_APE', payload: apeReward })
-            addGameMessage(`+${apeReward} APE earned! (Local) 🎉`, 'stage-up')
-          } else {
-            console.log('✅ APE balance updated successfully')
-            dispatch({ type: 'ADD_APE', payload: apeReward })
-            addGameMessage(`+${apeReward} APE earned! 🎉`, 'stage-up')
-          }
-        } catch (apeError) {
-          console.error('❌ APE balance update failed:', apeError)
-          // Award APE locally as fallback
-          console.log('🔄 Awarding APE locally due to database error')
-          dispatch({ type: 'ADD_APE', payload: apeReward })
-          addGameMessage(`+${apeReward} APE earned! (Local) 🎉`, 'stage-up')
-        }
-      }
-
-      console.log('✅ Share verification completed successfully (bypassed database)')
-      addGameMessage('Share verified! APE awarded! 🎉', 'stage-up')
-      
-    } catch (error) {
-      console.error('❌ Share verification failed:', error)
-      throw error
-    }
-  }, [user, addGameMessage, dispatch])
-
-  const getShareStats = useCallback(async () => {
-    if (!user || !isOnline) {
-      return { dailyShares: 0, cooldowns: {} }
-    }
-
-    try {
-      // Get today's share count
-      const { data: dailyShares, error: dailyError } = await supabase
-        .from('shares_log')
-        .select('platform, created_at')
-        .eq('user_id', user.id)
-        .gte('created_at', new Date().toISOString().split('T')[0])
-
-      if (dailyError) throw dailyError
-
-      const dailyCount = dailyShares?.length || 0
-      
-      // Check cooldowns for each platform
-      const cooldowns: Record<string, boolean> = {}
-      const platforms = ['tiktok', 'twitter', 'instagram']
-      
-      for (const platform of platforms) {
-        const lastShare = dailyShares?.find(share => 
-          share.platform === platform && 
-          new Date(share.created_at) > new Date(Date.now() - SHARE_LIMITS.COOLDOWN_HOURS * 60 * 60 * 1000)
-        )
-        cooldowns[platform] = !!lastShare
-      }
-
-      return { dailyShares: dailyCount, cooldowns }
-
-    } catch (error) {
-      console.error('Failed to get share stats:', error)
-      return { dailyShares: 0, cooldowns: {} }
-    }
-  }, [user, isOnline])
 
   // Revenge mode functions
   const activateRevengeMode = useCallback(() => {
@@ -1001,13 +798,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     resetSessionTime,
     applyReferralCode,
     copyReferralCode,
-    shareTrigger,
-    triggerShare,
-    clearShareTrigger,
-    shareToPlatform,
-    verifyShare,
-    getShareStats,
-    getShareMessage,
     activateRevengeMode
   }
 
