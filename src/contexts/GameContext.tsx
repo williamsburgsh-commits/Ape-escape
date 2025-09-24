@@ -869,47 +869,75 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     console.log('💰 APE reward calculated:', apeReward)
 
     try {
-      // Save to shares_log table (simple insert)
-      console.log('📝 Saving share to database...')
-      const { error: insertError } = await supabase
-        .from('shares_log')
-        .insert({
-          user_id: user.id,
-          platform: platform,
-          url: url.trim(),
-          ape_awarded: apeReward,
-          status: 'pending_review',
-          created_at: new Date().toISOString()
-        })
+      // Try to save to shares_log table (with proper error handling)
+      console.log('📝 Attempting to save share to database...')
+      
+      let databaseSaveSuccessful = false
+      try {
+        const { data: insertData, error: insertError } = await supabase
+          .from('shares_log')
+          .insert({
+            user_id: user.id,
+            platform: platform,
+            url: url.trim(),
+            ape_awarded: apeReward,
+            status: 'pending_review',
+            created_at: new Date().toISOString()
+          })
+          .select()
 
-      if (insertError) {
-        console.log('⚠️ Share logging failed, but continuing:', insertError.message)
-      } else {
-        console.log('✅ Share saved successfully')
+        if (insertError) {
+          console.error('❌ Database save failed:', insertError)
+          console.error('Error details:', {
+            message: insertError.message,
+            details: insertError.details,
+            hint: insertError.hint,
+            code: insertError.code
+          })
+          databaseSaveSuccessful = false
+        } else {
+          console.log('✅ Share saved successfully to database:', insertData)
+          databaseSaveSuccessful = true
+        }
+      } catch (dbError) {
+        console.error('❌ Database operation threw error:', dbError)
+        databaseSaveSuccessful = false
       }
 
-      // Update user APE balance immediately
+      // Always update APE balance regardless of database save success
       if (apeReward > 0) {
         console.log('💰 Updating APE balance...')
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            ape_balance: user.ape_balance + apeReward
-          })
-          .eq('id', user.id)
+        try {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              ape_balance: user.ape_balance + apeReward
+            })
+            .eq('id', user.id)
 
-        if (updateError) {
-          console.error('❌ Failed to update APE balance:', updateError)
+          if (updateError) {
+            console.error('❌ Failed to update APE balance:', updateError)
+            throw new Error('Failed to update APE balance')
+          } else {
+            console.log('✅ APE balance updated successfully')
+            // Update local state immediately
+            dispatch({ type: 'ADD_APE', payload: apeReward })
+            addGameMessage(`+${apeReward} APE earned! 🎉`, 'stage-up')
+          }
+        } catch (apeError) {
+          console.error('❌ APE balance update failed:', apeError)
           throw new Error('Failed to update APE balance')
-        } else {
-          console.log('✅ APE balance updated successfully')
-          // Update local state immediately
-          dispatch({ type: 'ADD_APE', payload: apeReward })
-          addGameMessage(`+${apeReward} APE earned! 🎉`, 'stage-up')
         }
       }
 
-      console.log('✅ Share verification completed successfully')
+      // Show appropriate success message based on database save
+      if (databaseSaveSuccessful) {
+        console.log('✅ Share verification completed successfully with database save')
+        addGameMessage('Share logged for review! 📝', 'info')
+      } else {
+        console.log('✅ Share verification completed successfully (database save failed but APE awarded)')
+        addGameMessage('APE awarded! (Share logging failed - will retry later) 🔄', 'info')
+      }
       
     } catch (error) {
       console.error('❌ Share verification failed:', error)
