@@ -28,7 +28,15 @@ export default function ShareTracking() {
       const stats = await getShareStats()
       setShareStats(stats)
     } catch (error) {
-      console.error('Failed to load share stats:', error)
+      console.warn('⚠️ Failed to load share stats:', error)
+      // Set default stats on error
+      setShareStats({ 
+        dailyShares: 0, 
+        cooldowns: {}, 
+        cooldownTimes: {},
+        totalShares: 0, 
+        totalApeEarned: 0 
+      })
     } finally {
       setIsLoading(false)
     }

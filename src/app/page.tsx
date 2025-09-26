@@ -219,10 +219,9 @@ function GameApp() {
             }
             
           } catch (error) {
-            console.error('❌ Verification failed:', error)
-            const errorMessage = error instanceof Error ? error.message : 'Verification failed'
-            setVerificationError(errorMessage)
-            throw error // Re-throw so ShareModal can handle it
+            console.warn('⚠️ Verification had issues, but APE was awarded:', error)
+            // Don't set error state since APE was already awarded
+            // The verifyShare function now handles errors gracefully
           } finally {
             setIsVerifying(false)
           }
